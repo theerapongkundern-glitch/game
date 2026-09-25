@@ -70,7 +70,7 @@ export const THEMES: Record<ThemeId, ThemeStyle> = {
   },
   city: {
     road: { base: '#2b2d3a', speck: ['#393c4d', '#22232e', '#44475a'], edge: '#e8ecff', center: '#ff4fa3', dashed: true },
-    roadRoughness: 0.6,
+    roadRoughness: 0.4,
     shoulder: { base: '#3a3d52', specks: ['#44485f', '#2f3245', '#50546e'], blades: false },
     ground: { base: '#2d2f42', specks: ['#383b52', '#25273a', '#44475e'], blades: false },
     groundTint: '#ffffff',

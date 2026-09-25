@@ -75,6 +75,10 @@ export class MenuBackground {
     for (const rc of this.sim.cars) rc.car.sync(alpha, dt, this.world.time);
     this.world.scene.updateMatrixWorld();
     for (const rc of this.sim.cars) rc.car.emitEffects(this.world.effects, dt);
+    if (this.world.skids) {
+      for (const rc of this.sim.cars) rc.car.layMarks(this.world.skids);
+      this.world.skids.flush();
+    }
     const rc = this.sim.cars[this.target];
     const car = rc.car;
     car.renderPos(alpha, _v);

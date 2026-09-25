@@ -3,7 +3,7 @@ import type { Track } from '../Track';
 import type { TrackVisual } from '../TrackBuilder';
 import { Rng } from '../../core/rng';
 import { Bag, instanced, scatter, vcMat, type Placement, type SceneryResult } from './common';
-import { hutGeometry, lighthouseGeometry, mountainGeometry, palmGeometry, rockGeometry, sailboatGeometry, umbrellaGeometry } from './props';
+import { frondTexture, hutGeometry, lighthouseGeometry, mountainGeometry, palmFrondGeometry, palmTrunkGeometry, pierGeometry, rockGeometry, sailboatGeometry, umbrellaGeometry } from './props';
 import { distantRing } from './distant';
 
 const BRIGHT = ['#ff5a36', '#ffd23f', '#3db4ff', '#ff4fa3', '#2ec27e', '#b44dff', '#ff8a3d'];
@@ -19,9 +19,38 @@ export function buildBeachScenery(track: Track, visual: TrackVisual, density: nu
   const water = -1.6;
   const dry = (_x: number, _z: number, y: number) => y > water + 0.5;
 
-  const palm = bag.add(palmGeometry());
   const palms = scatter(visual, rng, b, Math.floor(420 * density), { minGap: 2, maxDist: 150, scale: [0.8, 1.35], hug: 0.75, accept: dry });
-  group.add(instanced(palm, matDS, palms, { cast: shadows }));
+  group.add(instanced(bag.add(palmTrunkGeometry()), mat, palms, { cast: shadows }));
+  const frondMat = bag.add(new THREE.MeshStandardMaterial({ map: typeof document !== 'undefined' ? bag.add(frondTexture()) : null, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.75 }));
+  const frondTint = ['#ffffff', '#e6f7c8', '#d8f0d0', '#fff6d0'].map((c) => new THREE.Color(c));
+  group.add(instanced(bag.add(palmFrondGeometry()), frondMat, palms, { cast: shadows, color: (_p, i) => frondTint[i % frondTint.length] }));
+
+  // Wooden pier from the beach out over the sea.
+  const sea = track.def.sea;
+  if (sea) {
+    const dir = new THREE.Vector2(sea.dir[0], sea.dir[1]).normalize();
+    let best: { x: number; z: number } | null = null;
+    for (let t = 0; t < 600 && !best; t++) {
+      const x = rng.range(b.minX, b.maxX);
+      const z = rng.range(b.minZ - 150, b.maxZ + 150);
+      const y = visual.terrainHeight(x, z);
+      if (y < water + 0.2 || y > water + 0.9) continue;
+      const d = visual.distanceToTrack(x, z);
+      if (d.dist < d.limit + 12) continue;
+      // Needs open water ahead.
+      const ax = x + dir.x * 50;
+      const az = z + dir.y * 50;
+      if (visual.terrainHeight(ax, az) > water - 2) continue;
+      best = { x, z };
+    }
+    if (best) {
+      const pier = new THREE.Mesh(bag.add(pierGeometry(46, water + 1.6, 6)), mat);
+      pier.position.set(best.x, 0, best.z);
+      pier.rotation.y = Math.atan2(-dir.x, -dir.y);
+      pier.castShadow = shadows;
+      group.add(pier);
+    }
+  }
 
   const hut = bag.add(hutGeometry());
   const huts = scatter(visual, rng, b, 18, { minGap: 6, maxDist: 60, scale: [0.9, 1.2], accept: dry });

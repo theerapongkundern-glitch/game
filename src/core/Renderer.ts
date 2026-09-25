@@ -51,6 +51,8 @@ export interface FrameFX {
   blur: number;
   aberration: number;
   bloom: number;
+  /** Heat shimmer strength (desert, High+). */
+  haze?: number;
 }
 
 /**
@@ -151,12 +153,12 @@ export class Renderer {
       v.camera.updateProjectionMatrix();
       if (!this.post || this.postScene !== scene) {
         this.post?.dispose();
-        this.post = new PostFX(gl, scene, v.camera, { bloom: this.preset.bloom, blurSamples: this.preset.blurSamples, msaa: this.preset.msaa, ao: this.preset.ao });
+        this.post = new PostFX(gl, scene, v.camera, { bloom: this.preset.bloom, blurSamples: this.preset.blurSamples, msaa: this.preset.msaa, ao: this.preset.ao && !scene.userData.dof, dof: this.preset.bloom ? scene.userData.dof : undefined });
         this.post.setSize(this.width, this.height, this.pixelRatio);
         this.postScene = scene;
       }
       this.post.setScene(scene, v.camera);
-      this.post.set({ blur: fx.blur, aberration: fx.aberration, bloom: fx.bloom });
+      this.post.set({ blur: fx.blur, aberration: fx.aberration, bloom: fx.bloom, haze: this.preset.heatHaze ? (fx.haze ?? 0) : 0 });
       this.post.render(dt);
       return;
     }

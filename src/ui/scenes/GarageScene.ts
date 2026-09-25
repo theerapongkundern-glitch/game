@@ -65,6 +65,8 @@ export class GarageScene {
       this.scene.add(bar);
     }
     this.camera = new THREE.PerspectiveCamera(40, renderer.width / renderer.height, 0.1, 500);
+    // Soft background blur like a studio photo (applied on High+).
+    this.scene.userData.dof = { focus: 8.4, aperture: 0.0016, maxblur: 0.006 };
   }
 
   setCar(def: CarDef, color: string, locked: boolean) {

@@ -15,6 +15,7 @@ import {
   stripeTexture,
 } from './textures';
 import { fbm2 } from '../core/rng';
+import { stratify } from './strata';
 import { clamp, smoothstep } from '../core/math';
 import type { SurfaceType } from './Surfaces';
 
@@ -506,7 +507,7 @@ function buildBarriers(
       mat = new THREE.MeshStandardMaterial({ map: stripeTexture('wood', theme.barrier.a, '#8a5530', 8), roughness: 0.9 });
       break;
     case 'rock':
-      mat = new THREE.MeshStandardMaterial({ map: noiseTexture('rock', theme.barrier.a, [theme.barrier.b, '#b0603a', '#d98a5a'], 21), roughness: 1, flatShading: true });
+      mat = stratify(new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true }), [theme.barrier.a, theme.barrier.b, '#b0603a', '#f0c08a']);
       break;
     case 'tires':
     case 'foam':

@@ -1298,7 +1298,24 @@ export function buildCarModel(def: CarDef, color: string, quality: Quality = 'hi
   }
 
   // --- Exhausts + boost flames ------------------------------------------------------------------
-  const flameMat = new THREE.MeshBasicMaterial({ color: '#7fdcff', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
+  const flameMat = new THREE.MeshBasicMaterial({ color: '#7fdcff', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  // Hot white core at the nozzle, shock diamonds along the plume, soft fade to the tip.
+  flameMat.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vFlameT;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvFlameT = -position.z;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vFlameT;').replace(
+      '#include <color_fragment>',
+      `#include <color_fragment>
+      {
+        float t = clamp(vFlameT, 0.0, 1.0);
+        float core = 1.0 - smoothstep(0.0, 0.35, t);
+        float diamonds = pow(0.5 + 0.5 * cos(t * 31.0), 8.0) * (1.0 - t) * step(0.08, t);
+        float a = pow(1.0 - t, 1.4);
+        diffuseColor.rgb = (diffuseColor.rgb * (0.7 + 1.2 * diamonds) + vec3(1.0, 0.95, 0.9) * core) * 1.6;
+        diffuseColor.a *= a;
+      }`,
+    );
+  };
+  flameMat.customProgramCacheKey = () => 'prism-flame-1';
   const flameGeo = new THREE.ConeGeometry(0.13, 1, 10, 1, true);
   flameGeo.rotateX(-Math.PI / 2);
   flameGeo.translate(0, 0, -0.5);

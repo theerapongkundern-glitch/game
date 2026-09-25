@@ -130,9 +130,18 @@ export function translate(g: THREE.BufferGeometry, x: number, y: number, z: numb
   return g;
 }
 
+export interface SceneryExtras {
+  /** 0..1 density of wind-blown grass near the road. */
+  grass: number;
+  /** Light shafts through the trees. */
+  godRays: boolean;
+}
+
 export interface SceneryResult {
   group: THREE.Group;
   update(time: number, dt: number, focus?: THREE.Vector3): void;
+  /** Crowd excitement 0..1 (grandstands), if the track has any. */
+  setCheer?(v: number): void;
   dispose(): void;
 }
 

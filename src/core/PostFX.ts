@@ -5,6 +5,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
+import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass.js';
 
 /** Radial motion blur + vignette + slight grade, applied in linear HDR before tone mapping. */
 const FinalShader = {
@@ -15,6 +16,8 @@ const FinalShader = {
     uSaturation: { value: 1.12 },
     uAberration: { value: 0 },
     uSamples: { value: 8 },
+    uHaze: { value: 0 },
+    uTime: { value: 0 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -27,12 +30,21 @@ const FinalShader = {
     uniform float uSaturation;
     uniform float uAberration;
     uniform int uSamples;
+    uniform float uHaze;
+    uniform float uTime;
     varying vec2 vUv;
     void main() {
       vec2 center = vec2(0.5, 0.52);
       vec2 dir = vUv - center;
       float dist = length(dir);
-      vec3 col = texture2D(tDiffuse, vUv).rgb;
+      vec2 uv0 = vUv;
+      if (uHaze > 0.0) {
+        // Heat shimmer in a band around the horizon (hot air above the far road).
+        float band = smoothstep(0.36, 0.5, vUv.y) * (1.0 - smoothstep(0.52, 0.66, vUv.y));
+        uv0.x += sin(vUv.y * 230.0 + uTime * 7.0) * 0.0012 * band * uHaze;
+        uv0.y += cos(vUv.x * 150.0 + uTime * 5.3) * 0.0007 * band * uHaze;
+      }
+      vec3 col = texture2D(tDiffuse, uv0).rgb;
       if (uBlur > 0.001) {
         // Blur grows toward the edges, keeping the car in the middle crisp.
         float strength = uBlur * smoothstep(0.12, 0.7, dist);
@@ -67,6 +79,7 @@ export class PostFX {
   private readonly renderPass: RenderPass;
   private readonly bloom: UnrealBloomPass | null;
   private readonly ao: GTAOPass | null;
+  private readonly dof: BokehPass | null;
   private readonly final: ShaderPass;
   enabled = true;
 
@@ -74,7 +87,7 @@ export class PostFX {
     readonly renderer: THREE.WebGLRenderer,
     scene: THREE.Scene,
     camera: THREE.Camera,
-    opts: { bloom: boolean; blurSamples: number; msaa: number; ao?: boolean },
+    opts: { bloom: boolean; blurSamples: number; msaa: number; ao?: boolean; dof?: { focus: number; aperture: number; maxblur: number } },
   ) {
     const size = renderer.getDrawingBufferSize(new THREE.Vector2());
     const rt = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: opts.msaa });
@@ -88,6 +101,11 @@ export class PostFX {
       this.ao.blendIntensity = 0.8;
       this.composer.addPass(this.ao);
     } else this.ao = null;
+    if (opts.dof) {
+      // Showroom depth of field (garage only).
+      this.dof = new BokehPass(scene, camera, { ...opts.dof });
+      this.composer.addPass(this.dof);
+    } else this.dof = null;
     if (opts.bloom) {
       this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.5, 0.55, 0.95);
       this.composer.addPass(this.bloom);
@@ -105,6 +123,10 @@ export class PostFX {
       this.ao.scene = scene;
       this.ao.camera = camera;
     }
+    if (this.dof) {
+      this.dof.scene = scene;
+      this.dof.camera = camera;
+    }
   }
 
   setSize(w: number, h: number, pixelRatio: number) {
@@ -112,8 +134,9 @@ export class PostFX {
     this.composer.setSize(w, h);
   }
 
-  set(params: { blur?: number; bloom?: number; aberration?: number; vignette?: number; saturation?: number }) {
+  set(params: { blur?: number; bloom?: number; aberration?: number; vignette?: number; saturation?: number; haze?: number }) {
     const u = this.final.uniforms;
+    if (params.haze !== undefined) u.uHaze.value = params.haze;
     if (params.blur !== undefined) u.uBlur.value = params.blur;
     if (params.aberration !== undefined) u.uAberration.value = params.aberration;
     if (params.vignette !== undefined) u.uVignette.value = params.vignette;
@@ -122,6 +145,7 @@ export class PostFX {
   }
 
   render(dt: number) {
+    this.final.uniforms.uTime.value += dt;
     this.composer.render(dt);
   }
 
@@ -129,5 +153,6 @@ export class PostFX {
     this.composer.dispose();
     this.bloom?.dispose();
     this.ao?.dispose();
+    this.dof?.dispose();
   }
 }

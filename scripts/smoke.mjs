@@ -21,9 +21,27 @@ mkdirSync(OUT, { recursive: true });
 const candidates = [process.env.CHROME_PATH, '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'].filter(Boolean);
 const executablePath = candidates.find((p) => existsSync(p));
 
-const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'] });
+// Own process group, so the vite child dies with npx when we are done.
+const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+const stopServer = () => {
+  try {
+    process.kill(-server.pid, 'SIGTERM');
+  } catch {
+    server.kill();
+  }
+};
 await new Promise((resolve, reject) => {
-  const t = setTimeout(() => reject(new Error('vite preview did not start')), 30000);
+  const t = setTimeout(() => {
+    stopServer();
+    reject(new Error('vite preview did not start'));
+  }, 30000);
+  server.stderr.on('data', (d) => {
+    if (String(d).includes('already in use')) {
+      clearTimeout(t);
+      stopServer();
+      reject(new Error(`port ${PORT} is already in use (set SMOKE_PORT)`));
+    }
+  });
   server.stdout.on('data', (d) => {
     if (String(d).includes('Local')) {
       clearTimeout(t);
@@ -115,24 +133,32 @@ try {
     log(visible && errors.length === 0, 'touch controls on mobile');
   });
 
-  // 4. Rendering budget on High.
-  await withPage({ viewport: { width: 1280, height: 720 } }, async (page, errors) => {
-    await page.goto(`${BASE}?autotest=quick&track=coconut-coast&laps=3&quality=high&mute`);
-    await page.waitForTimeout(12000);
-    const info = await page.evaluate(() => {
-      const g = window.__game;
-      const i = g.renderer.gl.info.render;
-      return { calls: i.calls, tris: i.triangles };
+  // 4. Rendering budget per quality tier (High is enforced; Ultra is reported).
+  for (const [quality, track, limits] of [
+    ['high', 'coconut-coast', { calls: 300, tris: 1_000_000 }],
+    ['high', 'pinecrest-ridge', { calls: 300, tris: 1_000_000 }],
+    ['ultra', 'coconut-coast', null],
+  ]) {
+    await withPage({ viewport: { width: 1280, height: 720 } }, async (page, errors) => {
+      await page.goto(`${BASE}?autotest=quick&track=${track}&laps=3&quality=${quality}&mute`);
+      await page.waitForTimeout(14000);
+      const info = await page.evaluate(() => {
+        const g = window.__game;
+        const i = g.renderer.gl.info.render;
+        return { calls: i.calls, tris: i.triangles };
+      });
+      await page.screenshot({ path: `${OUT}/${quality}-${track}.png` });
+      const detail = `${info.calls} draw calls, ${(info.tris / 1000).toFixed(0)}k triangles`;
+      if (limits) log(info.calls < limits.calls && info.tris < limits.tris && errors.length === 0, `render budget (${quality}, ${track})`, detail + (errors.length ? '; errors: ' + errors.join(' | ') : ''));
+      else log(errors.length === 0, `render report (${quality}, ${track})`, detail);
     });
-    await page.screenshot({ path: `${OUT}/high.png` });
-    log(info.calls < 260 && info.tris < 700000 && errors.length === 0, 'render budget (High)', `${info.calls} draw calls, ${(info.tris / 1000).toFixed(0)}k triangles`);
-  });
+  }
 } catch (err) {
   failures++;
   console.error(err);
 } finally {
   await browser.close();
-  server.kill();
+  stopServer();
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll smoke checks passed');

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { World } from '../core/World';
 import { CameraRig, type CameraMode } from '../core/CameraRig';
 import { SpeedLines } from '../core/SpeedLines';
@@ -59,6 +60,7 @@ export class RaceSession implements SimUI {
   /** Extra per-frame render hook (ghost cars, gates...). */
   onRender: ((alpha: number, dt: number) => void) | null = null;
   private wrongWayShown: boolean[] = [];
+  private readonly disposables: { dispose(): void }[] = [];
 
   constructor(
     readonly renderer: Renderer,
@@ -77,11 +79,24 @@ export class RaceSession implements SimUI {
     this.sim.ui = this;
     this.sim.bumpSparks = (x, y, z) => {
       for (let k = 0; k < 6; k++) {
-        this.world.effects.sparks.emit({ x, y, z, vx: (Math.random() - 0.5) * 6, vy: 2 + Math.random() * 3, vz: (Math.random() - 0.5) * 6, life: 0.35, size: 0.25, endSize: 0.05, r: 3, g: 2.5, b: 1.2, gravity: 12 });
+        this.world.effects.streaks.emit({ x, y, z, vx: (Math.random() - 0.5) * 7, vy: 2 + Math.random() * 3, vz: (Math.random() - 0.5) * 7, life: 0.35, r: 3, g: 2.5, b: 1.2, gravity: 12 });
       }
     };
     for (const rc of this.sim.cars) this.world.scene.add(rc.car.object);
 
+    // Night tracks: soft volumetric beams in front of every car.
+    if (this.world.sky.preset.night && renderer.quality !== 'low') {
+      const beamMat = nightBeamMaterial();
+      this.disposables.push(beamMat);
+      for (const rc of this.sim.cars) {
+        const g = headlightBeams(rc.car.def.shape.width, rc.car.def.shape.length, rc.car.def.shape.clearance);
+        this.disposables.push(g);
+        const beam = new THREE.Mesh(g, beamMat);
+        beam.renderOrder = 6;
+        beam.frustumCulled = false;
+        rc.car.visual.body.add(beam);
+      }
+    }
     // Night tracks: real headlight spots on the players' cars (dynamic lighting).
     if (this.world.sky.preset.night) {
       for (const rc of this.sim.humanCars) {
@@ -136,6 +151,55 @@ export class RaceSession implements SimUI {
   }
   sound(name: SoundEvent, intensity = 1, rc?: RaceCar | null) {
     this.audio?.event(name, intensity, rc ? rc.player : -1);
+    if (name === 'go') this.celebrate(6, 2.2);
+    else if (name === 'finish' && rc?.isHuman) this.celebrate(12, 5);
+  }
+
+  // --- Fireworks + cheering crowd at the start/finish line ---------------------------------
+  private shows: { t: number; x: number; y: number; z: number; hue: number }[] = [];
+  private cheer = 0.3;
+
+  private celebrate(bursts: number, span: number) {
+    const m = this.world.track.main;
+    const hw = m.hw[0];
+    for (let i = 0; i < bursts; i++) {
+      const lat = (Math.random() * 2 - 1) * (hw + 14);
+      const along = (Math.random() * 2 - 1) * 30;
+      this.shows.push({
+        t: this.world.time + (i / bursts) * span + Math.random() * 0.2,
+        x: m.px[0] + m.nx[0] * lat + m.tx[0] * along,
+        y: m.py[0] + 20 + Math.random() * 14,
+        z: m.pz[0] + m.nz[0] * lat + m.tz[0] * along,
+        hue: Math.random(),
+      });
+    }
+    this.cheer = 1;
+  }
+
+  private updateCelebrations(dt: number) {
+    const now = this.world.time;
+    const fx = this.world.effects;
+    const col = new THREE.Color();
+    for (let i = this.shows.length - 1; i >= 0; i--) {
+      const s = this.shows[i];
+      if (s.t > now) continue;
+      this.shows.splice(i, 1);
+      const n = Math.round(70 * Math.max(0.5, fx.density));
+      col.setHSL(s.hue, 1, 0.6);
+      const col2 = new THREE.Color().setHSL((s.hue + 0.12) % 1, 1, 0.7);
+      for (let k = 0; k < n; k++) {
+        // Even spread on a sphere.
+        const u = Math.random() * 2 - 1;
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.sqrt(1 - u * u);
+        const sp = 9 + Math.random() * 3;
+        const c = k % 3 ? col : col2;
+        fx.glow.emit({ x: s.x, y: s.y, z: s.z, vx: Math.cos(a) * r * sp, vy: u * sp + 2, vz: Math.sin(a) * r * sp, life: 1.5, size: 0.9, endSize: 0.25, r: c.r * 3, g: c.g * 3, b: c.b * 3, gravity: 4, drag: 1.1 });
+      }
+      for (let k = 0; k < 16; k++) fx.sparks.emit({ x: s.x, y: s.y, z: s.z, vx: (Math.random() - 0.5) * 16, vy: (Math.random() - 0.5) * 16, vz: (Math.random() - 0.5) * 16, life: 0.9, size: 0.3, endSize: 0.05, r: 3, g: 3, b: 2.6, gravity: 6, drag: 1.5 });
+    }
+    this.cheer = Math.max(0.3, this.cheer - dt * 0.12);
+    this.world.scenery.setCheer?.(this.cheer);
   }
   shake(rc: RaceCar, amount: number) {
     for (const pv of this.viewFor(rc)) pv.rig.addShake(amount);
@@ -156,6 +220,7 @@ export class RaceSession implements SimUI {
   render(alpha: number, dt: number): View[] {
     const sim = this.sim;
     const views: View[] = [];
+    this.updateCelebrations(dt);
     for (const rc of sim.cars) {
       rc.car.sync(alpha, dt, this.world.time);
       if (rc.eliminated) {
@@ -177,6 +242,11 @@ export class RaceSession implements SimUI {
     this.onRender?.(alpha, dt);
     this.world.scene.updateMatrixWorld();
     if (dt > 0) for (const rc of sim.cars) rc.car.emitEffects(this.world.effects, dt);
+    const skids = this.world.skids;
+    if (skids && dt > 0) {
+      for (const rc of sim.cars) rc.car.layMarks(skids);
+      skids.flush();
+    }
     const focus = this.players[0]?.rc.car.object.position ?? _v.set(0, 0, 0);
     this.world.update(dt, focus);
 
@@ -236,7 +306,7 @@ export class RaceSession implements SimUI {
     const p = pv.rc.car.physics;
     const sf = clamp(p.speed / p.p.topSpeed, 0, 1.3);
     const blur = clamp((sf - 0.45) * 1.4, 0, 1) * 0.7 + (p.boosting ? 0.5 : 0);
-    return { blur, aberration: p.boosting ? 0.8 : 0, bloom: bloom + (p.boosting ? 0.15 : 0) };
+    return { blur, aberration: p.boosting ? 0.8 : 0, bloom: bloom + (p.boosting ? 0.15 : 0), haze: this.world.def.theme === 'desert' ? 1 : 0 };
   }
 
   /** Colourful celebration burst. */
@@ -271,6 +341,61 @@ export class RaceSession implements SimUI {
     }
     for (const rc of this.sim.cars) this.world.scene.remove(rc.car.object);
     this.sim.dispose();
+    for (const d of this.disposables) d.dispose();
     if (!keepWorld) this.world.dispose();
   }
+}
+
+/** Two open cones from the headlights, 18 m long; `aT` runs 0 (lamp) -> 1 (far end). */
+function headlightBeams(width: number, length: number, clearance: number): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  for (const side of [-1, 1]) {
+    const g = new THREE.ConeGeometry(3.4, 18, 18, 1, true);
+    g.rotateX(-Math.PI / 2);
+    g.translate(0, 0, 9);
+    // Aim slightly down at the road.
+    g.rotateX(0.06);
+    const pos = g.attributes.position as THREE.BufferAttribute;
+    const t = new Float32Array(pos.count);
+    for (let i = 0; i < pos.count; i++) t[i] = Math.max(0, pos.getZ(i) / 18);
+    g.setAttribute('aT', new THREE.BufferAttribute(t, 1));
+    g.translate(side * width * 0.3, clearance + 0.38, length / 2);
+    parts.push(g);
+  }
+  const out = mergeGeometries(parts, false)!;
+  for (const g of parts) g.dispose();
+  return out;
+}
+
+function nightBeamMaterial(): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: new THREE.Color('#fff1d0') } },
+    vertexShader: /* glsl */ `
+      attribute float aT;
+      varying float vT;
+      varying vec3 vN;
+      varying vec3 vV;
+      void main() {
+        vT = aT;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vN = normalize(normalMatrix * normal);
+        vV = normalize(-mv.xyz);
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uColor;
+      varying float vT;
+      varying vec3 vN;
+      varying vec3 vV;
+      void main() {
+        // Brighter where the view passes through more of the beam (its middle), fading out.
+        float through = pow(abs(dot(normalize(vN), normalize(vV))), 1.5);
+        float a = pow(1.0 - vT, 2.0) * smoothstep(0.0, 0.18, vT) * through * 0.075;
+        gl_FragColor = vec4(uColor * a, 1.0);
+      }`,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
 }

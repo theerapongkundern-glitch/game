@@ -5,6 +5,7 @@ import { buildCarModel, type CarVisual } from './CarModel';
 import { TrackGround, type Track } from '../tracks/Track';
 import { SURFACES } from '../tracks/Surfaces';
 import type { Effects } from '../core/Particles';
+import type { SkidMarks } from '../core/SkidMarks';
 import { clamp, lerp, wrapAngle } from '../core/math';
 import type { Quality } from '../core/Renderer';
 
@@ -35,6 +36,9 @@ export class Car {
   private emitAcc = 0;
   /** Fade-out for eliminated cars. */
   opacity = 1;
+  private static nextUid = 0;
+  private readonly uid = Car.nextUid++;
+  private lastGear = 1;
   visible = true;
 
   constructor(
@@ -166,16 +170,16 @@ export class Car {
           vx: p.vx * 0.15 + (fx.smoke.random() - 0.5) * 2,
           vy: 0.8 + fx.smoke.random() * 0.8,
           vz: p.vz * 0.15 + (fx.smoke.random() - 0.5) * 2,
-          spread: 0.4,
-          life: 1.3,
-          size: 1.1,
-          endSize: 4.2,
+          spread: 0.5,
+          life: 2.0,
+          size: 1.5,
+          endSize: 6.5,
           r: c,
           g: c,
           b: c + 0.03,
-          alpha: 0.42 * intensity + 0.1,
-          drag: 1.4,
-          gravity: -0.4,
+          alpha: 0.3 * intensity + 0.08,
+          drag: 1.2,
+          gravity: -0.35,
         });
       }
       // Dust / grass / spray from loose surfaces.
@@ -228,7 +232,7 @@ export class Car {
       const wz = p.z + q.wallNz * p.p.halfWidth;
       for (let i = 0; i < n; i++) {
         if (!fx.chance(0.85)) continue;
-        fx.sparks.emit({
+        fx.streaks.emit({
           x: wx,
           y: p.y + 0.4,
           z: wz,
@@ -247,6 +251,16 @@ export class Car {
         });
       }
     }
+    // Exhaust backfire pop on upshifts under full throttle.
+    if (p.gear > this.lastGear && this.input.throttle > 0.8 && p.speed > 8 && fx.chance(0.6) && this.def.engine.cylinders > 0) {
+      for (const e of v.exhausts) {
+        _v.copy(e).applyMatrix4(v.body.matrixWorld);
+        for (let k = 0; k < 5; k++) {
+          fx.glow.emit({ x: _v.x, y: _v.y, z: _v.z, vx: p.vx * 0.7 + (fx.glow.random() - 0.5) * 2, vy: 0.3, vz: p.vz * 0.7 + (fx.glow.random() - 0.5) * 2, spread: 0.1, life: 0.18, size: 0.7, endSize: 0.1, r: 3, g: 1.4, b: 0.35, alpha: 0.9, drag: 4 });
+        }
+      }
+    }
+    this.lastGear = p.gear;
     // Boost glow trail.
     if (p.boosting) {
       for (const e of v.exhausts) {
@@ -271,6 +285,22 @@ export class Car {
           drag: 3,
         });
       }
+    }
+  }
+
+  /** Lays tyre marks from the rear wheels while sliding, spinning or braking hard on tarmac. */
+  layMarks(skids: SkidMarks) {
+    const p = this.physics;
+    const v = this.visual;
+    let strength = 0;
+    if (this.visible && p.enabled && p.grounded && p.speed > 3 && SURFACES[p.surface].particle === 'smoke') {
+      const slip = p.drifting ? 0.85 + 0.15 * Math.min(1, p.speed / 25) : clamp((p.rearSlip - 0.075) * 5, 0, 1);
+      const lock = this.input.brake > 0.8 && p.vLong > 14 ? 0.5 : 0;
+      strength = Math.max(slip, p.wheelSpin * 0.8, lock);
+    }
+    for (let k = 0; k < v.rearContacts.length; k++) {
+      _v.copy(v.rearContacts[k]).applyMatrix4(v.root.matrixWorld);
+      skids.track(`${this.uid}:${k}`, _v.x, _v.y, _v.z, v.shape.wheelWidth * 0.9, strength);
     }
   }
 

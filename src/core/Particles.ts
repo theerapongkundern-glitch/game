@@ -224,12 +224,145 @@ export class ParticleSystem {
 
 const tmpV4 = new THREE.Vector4();
 
+/**
+ * Motion-stretched sparks: each particle is a short additive line from its position back
+ * along its velocity, so fast sparks read as streaks instead of dots.
+ */
+export class StreakSystem {
+  readonly points: THREE.LineSegments;
+  private readonly max: number;
+  private count = 0;
+  private readonly p: Float32Array;
+  private readonly v: Float32Array;
+  private readonly c0: Float32Array;
+  private readonly life: Float32Array;
+  private readonly maxLife: Float32Array;
+  private readonly grav: Float32Array;
+  private readonly drag: Float32Array;
+  private readonly pos: Float32Array;
+  private readonly col: Float32Array;
+  private readonly geo: THREE.BufferGeometry;
+  private readonly mat: THREE.LineBasicMaterial;
+  private rngState = 987654;
+
+  constructor(max: number) {
+    this.max = max;
+    this.p = new Float32Array(max * 3);
+    this.v = new Float32Array(max * 3);
+    this.c0 = new Float32Array(max * 3);
+    this.life = new Float32Array(max);
+    this.maxLife = new Float32Array(max);
+    this.grav = new Float32Array(max);
+    this.drag = new Float32Array(max);
+    this.pos = new Float32Array(max * 6);
+    this.col = new Float32Array(max * 6);
+    this.geo = new THREE.BufferGeometry();
+    this.geo.setAttribute('position', new THREE.BufferAttribute(this.pos, 3).setUsage(THREE.DynamicDrawUsage));
+    this.geo.setAttribute('color', new THREE.BufferAttribute(this.col, 3).setUsage(THREE.DynamicDrawUsage));
+    this.geo.setDrawRange(0, 0);
+    this.mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+    this.points = new THREE.LineSegments(this.geo, this.mat);
+    this.points.frustumCulled = false;
+    this.points.renderOrder = 11;
+  }
+
+  random() {
+    let x = this.rngState;
+    x ^= x << 13;
+    x ^= x >>> 17;
+    x ^= x << 5;
+    this.rngState = x >>> 0;
+    return this.rngState / 4294967296;
+  }
+
+  emit(o: EmitOptions) {
+    const i = this.count < this.max ? this.count++ : Math.floor(this.random() * this.max);
+    this.p[i * 3] = o.x;
+    this.p[i * 3 + 1] = o.y;
+    this.p[i * 3 + 2] = o.z;
+    this.v[i * 3] = o.vx ?? 0;
+    this.v[i * 3 + 1] = o.vy ?? 0;
+    this.v[i * 3 + 2] = o.vz ?? 0;
+    this.c0[i * 3] = o.r ?? 1;
+    this.c0[i * 3 + 1] = o.g ?? 1;
+    this.c0[i * 3 + 2] = o.b ?? 1;
+    const life = (o.life ?? 0.4) * (0.75 + this.random() * 0.5);
+    this.life[i] = this.maxLife[i] = life;
+    this.grav[i] = o.gravity ?? 9;
+    this.drag[i] = o.drag ?? 1;
+  }
+
+  update(dt: number) {
+    let n = this.count;
+    for (let i = 0; i < n; i++) {
+      this.life[i] -= dt;
+      if (this.life[i] <= 0) {
+        n--;
+        if (i !== n) {
+          for (let k = 0; k < 3; k++) {
+            this.p[i * 3 + k] = this.p[n * 3 + k];
+            this.v[i * 3 + k] = this.v[n * 3 + k];
+            this.c0[i * 3 + k] = this.c0[n * 3 + k];
+          }
+          this.life[i] = this.life[n];
+          this.maxLife[i] = this.maxLife[n];
+          this.grav[i] = this.grav[n];
+          this.drag[i] = this.drag[n];
+        }
+        i--;
+        continue;
+      }
+      const k = i * 3;
+      const d = Math.max(0, 1 - this.drag[i] * dt);
+      this.v[k] *= d;
+      this.v[k + 1] = this.v[k + 1] * d - this.grav[i] * dt;
+      this.v[k + 2] *= d;
+      this.p[k] += this.v[k] * dt;
+      this.p[k + 1] += this.v[k + 1] * dt;
+      this.p[k + 2] += this.v[k + 2] * dt;
+      const fade = this.life[i] / this.maxLife[i];
+      const o = i * 6;
+      const tail = 0.035;
+      this.pos[o] = this.p[k];
+      this.pos[o + 1] = this.p[k + 1];
+      this.pos[o + 2] = this.p[k + 2];
+      this.pos[o + 3] = this.p[k] - this.v[k] * tail;
+      this.pos[o + 4] = this.p[k + 1] - this.v[k + 1] * tail;
+      this.pos[o + 5] = this.p[k + 2] - this.v[k + 2] * tail;
+      for (let q = 0; q < 3; q++) {
+        this.col[o + q] = this.c0[k + q] * fade;
+        this.col[o + 3 + q] = this.c0[k + q] * fade * 0.15;
+      }
+    }
+    this.count = n;
+    this.geo.setDrawRange(0, n * 2);
+    this.geo.attributes.position.needsUpdate = true;
+    this.geo.attributes.color.needsUpdate = true;
+  }
+
+  clear() {
+    this.count = 0;
+    this.geo.setDrawRange(0, 0);
+  }
+
+  get alive() {
+    return this.count;
+  }
+
+  dispose() {
+    this.geo.dispose();
+    this.mat.dispose();
+  }
+}
+
 /** All particle effects used in a race, grouped for convenience. */
 export class Effects {
   readonly smoke: ParticleSystem;
   readonly dust: ParticleSystem;
   readonly sparks: ParticleSystem;
   readonly glow: ParticleSystem;
+  /** Stretched spark streaks (wall scrapes, bumps). */
+  readonly streaks: StreakSystem;
   readonly group = new THREE.Group();
   /** 0..1 particle density multiplier from quality settings. */
   density = 1;
@@ -240,8 +373,9 @@ export class Effects {
     this.smoke = new ParticleSystem(Math.floor(900 * scale) + 50, 'soft', THREE.NormalBlending);
     this.dust = new ParticleSystem(Math.floor(700 * scale) + 50, 'soft', THREE.NormalBlending);
     this.sparks = new ParticleSystem(Math.floor(400 * scale) + 40, 'spark', THREE.AdditiveBlending);
-    this.glow = new ParticleSystem(Math.floor(500 * scale) + 40, 'soft', THREE.AdditiveBlending);
-    this.group.add(this.smoke.points, this.dust.points, this.sparks.points, this.glow.points);
+    this.glow = new ParticleSystem(Math.floor(900 * scale) + 40, 'soft', THREE.AdditiveBlending);
+    this.streaks = new StreakSystem(Math.floor(500 * scale) + 40);
+    this.group.add(this.smoke.points, this.dust.points, this.sparks.points, this.glow.points, this.streaks.points);
   }
 
   update(dt: number) {
@@ -249,6 +383,7 @@ export class Effects {
     this.dust.update(dt);
     this.sparks.update(dt);
     this.glow.update(dt);
+    this.streaks.update(dt);
   }
 
   clear() {
@@ -256,6 +391,7 @@ export class Effects {
     this.dust.clear();
     this.sparks.clear();
     this.glow.clear();
+    this.streaks.clear();
   }
 
   /** Probabilistic emission helper so effects scale with quality. */
@@ -268,5 +404,6 @@ export class Effects {
     this.dust.dispose();
     this.sparks.dispose();
     this.glow.dispose();
+    this.streaks.dispose();
   }
 }

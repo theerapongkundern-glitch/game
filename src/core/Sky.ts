@@ -347,7 +347,7 @@ export class Sky {
           texColor = mix( texColor, tinted, uStylize );
           // Soft-knee compression keeps the sun glow from flooding the bloom pass.
           float pk = max( max( texColor.r, texColor.g ), max( texColor.b, 1e-4 ) );
-          if ( pk > 0.9 ) texColor *= ( 0.9 + ( pk - 0.9 ) / ( 1.0 + ( pk - 0.9 ) / 2.2 ) ) / pk;
+          if ( pk > 0.9 ) texColor *= ( 0.9 + ( pk - 0.9 ) / ( 1.0 + ( pk - 0.9 ) / 0.9 ) ) / pk;
           float hz = smoothstep( 0.22, -0.02, direction.y );
           texColor = mix( texColor, uHaze, hz * 0.85 );
           gl_FragColor = vec4( texColor, 1.0 );`,
@@ -404,12 +404,13 @@ export class Sky {
       const hex = flareTexture('hex');
       this.flareTex.push(glow, ring, hex);
       const f = new Lensflare();
-      const tint = new THREE.Color(p.sunColor);
-      f.addElement(new LensflareElement(glow, 520, 0, tint));
-      f.addElement(new LensflareElement(hex, 70, 0.35, new THREE.Color('#9fd8ff')));
-      f.addElement(new LensflareElement(ring, 160, 0.55, new THREE.Color('#ffc2e8')));
-      f.addElement(new LensflareElement(hex, 110, 0.75, new THREE.Color('#c8ffd8')));
-      f.addElement(new LensflareElement(ring, 240, 1.0, new THREE.Color('#fff0c0')));
+      const tint = new THREE.Color(p.sunColor).multiplyScalar(0.55);
+      const k = 0.35;
+      f.addElement(new LensflareElement(glow, 300, 0, tint));
+      f.addElement(new LensflareElement(hex, 60, 0.35, new THREE.Color('#9fd8ff').multiplyScalar(k)));
+      f.addElement(new LensflareElement(ring, 140, 0.55, new THREE.Color('#ffc2e8').multiplyScalar(k)));
+      f.addElement(new LensflareElement(hex, 90, 0.75, new THREE.Color('#c8ffd8').multiplyScalar(k)));
+      f.addElement(new LensflareElement(ring, 200, 1.0, new THREE.Color('#fff0c0').multiplyScalar(k)));
       f.frustumCulled = false;
       this.flare = f;
     }

@@ -12,8 +12,9 @@ All the cars, tracks, textures, music and sound effects are **generated in code*
 | --- | --- |
 | ![Main menu](docs/menu.jpg) | ![Garage](docs/garage.jpg) |
 | ![Coconut Coast](docs/coconut-coast.jpg) | ![Neon Nightway](docs/neon-nightway.jpg) |
-| ![Pinecrest Ridge](docs/pinecrest-ridge.jpg) | ![Track select](docs/track-select.jpg) |
-| ![Split screen](docs/split-screen.jpg) | ![Grand Prix podium](docs/podium.jpg) |
+| ![Pinecrest Ridge](docs/pinecrest-ridge.jpg) | ![Sunstone Canyon](docs/sunstone-canyon.jpg) |
+| ![Track select](docs/track-select.jpg) | ![Split screen](docs/split-screen.jpg) |
+| ![Grand Prix podium](docs/podium.jpg) | |
 
 ---
 
@@ -93,10 +94,12 @@ Requirements: Node 20.19+ (Node 22 recommended). It runs in current Chrome, Edge
 
 | Track | Theme | Features | Unlock |
 | --- | --- | --- | --- |
-| Coconut Coast | tropical beach, day | lagoon-side jump, dirt "Dune dash" shortcut, wet surf line, sea & sailboats | start |
-| Pinecrest Ridge | mountain forest, sunset | big climbs, creek jump, "Logging trail" shortcut, wet bridge, fireflies | start |
-| Neon Nightway | neon city, night | rain-slick corners, plaza ramp, "Back alley" shortcut, headlights & bloom | Bronze Cup |
-| Sunstone Canyon | desert canyon, golden hour | huge canyon jump, "Slot canyon" shortcut with boost pad, mesas, balloons | Silver Cup |
+| Coconut Coast | tropical beach, day | lagoon-side jump, dirt "Dune dash" shortcut, wet surf line, a sea with shallows and surf, a pier, sailboats | start |
+| Pinecrest Ridge | mountain forest, sunset | big climbs, creek jump, "Logging trail" shortcut, wet bridge, needle pines, wind-blown grass, valley mist, fireflies | start |
+| Neon Nightway | neon city, night | rain-slick corners, plaza ramp, "Back alley" shortcut, glass towers, wet-road neon reflections, an overpass, traffic lights, steam vents, headlight beams | Bronze Cup |
+| Sunstone Canyon | desert canyon, golden hour | huge canyon jump, "Slot canyon" shortcut with boost pad, banded sandstone mesas, tumbleweeds, dust devils, heat haze, balloons | Silver Cup |
+
+Every track has grandstands with a cheering crowd, flags, banners and a catch fence at the start line, and fireworks go off at the start and when you finish.
 
 Progress is saved in `localStorage` (key `prism-rush.save`), including:
 
@@ -108,31 +111,40 @@ Progress is saved in `localStorage` (key `prism-rush.save`), including:
 
 ## Settings & performance
 
-- **Graphics quality:**
-  - **Low:** no shadows, no post-processing, fewer props.
-  - **Medium:** shadows, light motion blur.
-  - **High:** larger shadow maps, bloom, full motion blur, 4× MSAA.
-  - Touch devices start on Low.
+- **Graphics quality** (Settings → General):
+  - **Low:** no shadows or post-processing, simple materials, fewer props. For phones and older GPUs; touch devices start here.
+  - **Medium:** physical sky, realistic materials (clearcoat paint, asphalt detail, rippled water), skid marks, shadows and light motion blur.
+  - **High:** everything in Medium plus larger shadow maps, bloom, 4× MSAA, a sun lens flare, heat haze in the desert, wind-blown grass and depth of field in the garage. This is the 60 FPS target on a mid-range laptop.
+  - **Ultra:** 4096 shadow maps, ambient occlusion (GTAO), denser grass and particles, light shafts through the forest, and higher-detail cars and terrain.
 - **Auto resolution** lowers the render resolution when frames get slow, and raises it again when there is headroom.
-- Physics runs at a fixed **120 Hz** with render interpolation. Scenery is instanced, and car parts are merged per material.
-- On High, the heaviest track is about 200 draw calls and under 600k triangles, including the shadow pass.
+- Physics runs at a fixed **120 Hz** with render interpolation. Scenery is instanced, and car parts are merged per material (about 20 draw calls per car).
+- On High, the heaviest track is about 270 draw calls and 650k triangles, including the shadow pass. `npm run smoke` enforces a budget of 300 draw calls and 1M triangles on High.
 - URL switches:
-  - `?quality=low|medium|high` overrides the saved quality.
+  - `?quality=low|medium|high|ultra` overrides the saved quality.
   - `?debug` (or `F3` in a race) shows a physics/renderer overlay.
   - `?mute` silences audio.
+
+### How the graphics work
+
+- **Sky and light:** a physically based (Preetham) sky with drifting clouds, graded towards each track's colours so it stays bright and cheerful. It's rendered into an environment map, so cars, glass and water reflect it. ACES tone mapping, bloom and a lens flare finish the image.
+- **Cars** are lofted from ~30 rounded cross-sections that follow each car's side profile. Wheel arches are carved in and the fenders flare over the tyres. Lights, grilles, vents and skirts are "decals" that hug the body surface. Paint has a clearcoat layer, and stripes and panel seams are painted on in the shader.
+- **Tracks:** asphalt has aggregate grain, cracks and polished tyre lanes; curbs are raised; puddles ripple. The terrain blends in rock on steep slopes and a wet band by the water. The sea reads the terrain height, so it shows turquoise shallows, rolling surf and deep water.
+- **Effects:** tyre smoke, skid marks that stay on the road, spark streaks, shock-diamond boost flames, backfire pops, headlight beams at night and fireworks.
 
 ## Project structure
 
 ```
 src/
-  core/      Game (app state machine), Loop (fixed step), Renderer (quality, dynamic resolution),
-             PostFX (motion blur, bloom), Sky presets, CameraRig, Particles, SpeedLines,
+  core/      Game (app state machine), Loop (fixed step), Renderer (quality tiers, dynamic resolution),
+             PostFX (motion blur, bloom, AO, depth of field, heat haze), Sky (physical sky, flare),
+             CameraRig, Particles (+ spark streaks), SkidMarks, SpeedLines,
              Input (keyboard/gamepad/touch, remapping), Save (versioned localStorage), World
-  vehicles/  CarDefs (the 6 cars), VehiclePhysics (arcade tyre model + drift), CarModel (procedural
-             meshes), Car (physics + visuals + effects), Ghost (record/encode/playback)
+  vehicles/  CarDefs (the 6 cars), VehiclePhysics (arcade tyre model + drift), CarModel (lofted
+             procedural bodies, wheels, lights), carTextures (grille/chrome atlas, tyre tread),
+             Car (physics + visuals + effects), Ghost (record/encode/playback)
   tracks/    Track (spline sampling & fast queries), TrackBuilder (road, curbs, barriers, ramps,
-             terrain, water), Surfaces, themes, textures (canvas-generated), defs/ (track data),
-             scenery/ (beach, city, forest, desert props)
+             terrain shading, water), Surfaces, themes, textures (canvas-generated), strata (rock
+             bands), defs/ (track data), scenery/ (trackside stands + beach, city, forest, desert)
   ai/        RacingLine (curvature-minimising line + speed profile), AIDriver, Difficulty
   modes/     RaceSim (pure race logic, runs headless in tests), RaceSession (rendering + HUD),
              QuickRace, TimeTrial, GrandPrix, Elimination, CheckpointRush, SplitScreen
@@ -210,7 +222,7 @@ Add an entry to `CAR_DEFS` in `src/vehicles/CarDefs.ts`:
 
 - **stats**: `speed`, `accel`, `handling` and `drift`, each 1–10. They drive every physics parameter through `deriveParams()`.
 - **handling traits**: `offroad` (0–1), `mass` and `drive` (`rwd` / `awd` / `fwd`).
-- **shape**: length, width, heights, wheelbase, wheel size, cabin placement, side-profile points, spoiler style and extras such as `roofScoop`, `bullbar` or `fins`.
+- **shape**: length, width, heights, wheelbase, wheel size, cabin placement, side-profile points, spoiler style and extras such as `roofScoop`, `bullbar` or `fins`. Looks are set by `rimStyle` (`five`, `multi`, `mesh`, `turbine`, `dish`), `flare` (fender flare in metres), `lightStyle` (`slim`, `wide`, `round`), `stripes` (`none`, `twin`, `center`, `flank`), and the optional `roof` (`paint`, `accent`, `black`) and `caliper` colour.
 - **engine**: `pitch`, `growl` and `cylinders` (0 = electric whine).
 - **unlock**: `start`, `bronze`, `silver` or `gold`.
 
