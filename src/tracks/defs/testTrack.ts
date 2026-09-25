@@ -1,0 +1,50 @@
+import type { TrackDef } from '../types';
+
+/** Small proving ground with every surface, a ramp, a boost pad and a shortcut. */
+export const testTrack: TrackDef = {
+  id: 'proving-ground',
+  name: 'Prism Proving Ground',
+  tagline: 'A test loop with every surface.',
+  theme: 'test',
+  sky: 'day',
+  music: 'menu',
+  width: 16,
+  shoulder: 7,
+  shoulderSurface: 'grass',
+  seed: 11,
+  colors: { primary: '#ff4fa3', secondary: '#3de0ff' },
+  points: [
+    { x: 0, z: -60 },
+    { x: 0, z: 40 },
+    { x: 0, z: 140, bank: 4 },
+    { x: 30, z: 200, bank: 6 },
+    { x: 100, z: 222, bank: 6 },
+    { x: 170, z: 200, y: 2, bank: 4 },
+    { x: 200, z: 140, y: 4 },
+    { x: 200, z: 60, y: 6 },
+    { x: 180, z: 0, y: 3 },
+    { x: 140, z: -30 },
+    { x: 120, z: -70, w: 14 },
+    { x: 140, z: -120 },
+    { x: 100, z: -170, bank: 5 },
+    { x: 30, z: -170, bank: 5 },
+    { x: 0, z: -125 },
+  ],
+  surfaces: [
+    { from: 6.2, to: 7.4, type: 'wet' },
+    { from: 3.2, to: 4.2, type: 'sand', lat: [-8, -3] },
+  ],
+  ramps: [{ at: 1.35, length: 14, height: 1.8, width: 7, offset: 0 }],
+  boostPads: [{ at: 0.35, offset: -4 }, { at: 12.6, offset: 3 }],
+  shortcuts: [
+    {
+      from: 8.2,
+      to: 11.4,
+      via: [{ x: 176, z: -55 }, { x: 160, z: -100 }],
+      width: 10,
+      surface: 'dirt',
+      name: 'Dirt cut',
+    },
+  ],
+  rush: { start: 25, perGate: 6 },
+};
