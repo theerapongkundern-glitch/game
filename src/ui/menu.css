@@ -193,7 +193,7 @@ kbd {
   background: transparent;
   border: 0;
   border-radius: 10px;
-  padding: 6px 14px 4px;
+  padding: 6px 11px 4px;
   cursor: pointer;
 }
 
@@ -381,5 +381,629 @@ input[type='range'] {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* ---------- Main menu ---------- */
+.main-menu {
+  flex-direction: row;
+  align-items: stretch;
+  background: linear-gradient(90deg, rgba(12, 8, 34, 0.78) 0%, rgba(12, 8, 34, 0.35) 42%, rgba(12, 8, 34, 0) 65%);
+}
+
+.menu-left {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(460px, 100%);
+}
+
+.logo {
+  position: relative;
+  padding: 6px 0 8px 70px;
+  animation: logoIn 0.8s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.logo-prism {
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 58px;
+  height: 58px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  background: conic-gradient(from 90deg, var(--pink), var(--yellow), var(--lime), var(--cyan), var(--violet), var(--pink));
+  animation: prismSpin 6s linear infinite;
+  filter: drop-shadow(0 6px 0 rgba(12, 8, 34, 0.6));
+}
+
+.logo-text {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 800;
+  line-height: 0.82;
+  letter-spacing: -1px;
+  filter: drop-shadow(0 5px 0 rgba(12, 8, 34, 0.7));
+}
+
+.logo-text .l1,
+.logo-text .l2 {
+  display: block;
+  font-size: clamp(44px, 7vw, 74px);
+  background: linear-gradient(100deg, #fff 20%, var(--yellow) 45%, var(--pink) 70%, var(--cyan));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shine 5s ease-in-out infinite;
+}
+
+.logo-text .l2 {
+  margin-left: 40px;
+  animation-delay: 0.3s;
+}
+
+.logo-tag {
+  font-size: 15px;
+  opacity: 0.85;
+  margin-top: 6px;
+  margin-left: 4px;
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 20px;
+  padding: 6px 16px 5px;
+  animation: slideIn 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+
+.menu-btn .ico {
+  font-size: 24px;
+  width: 36px;
+  text-align: center;
+  font-style: normal;
+}
+
+.menu-btn .txt {
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-btn .sub {
+  font-size: 12.5px;
+}
+
+.menu-extras {
+  margin-top: 4px;
+}
+
+.menu-side {
+  position: absolute;
+  right: calc(24px + var(--safe-r));
+  bottom: calc(22px + var(--safe-b));
+  min-width: 250px;
+}
+
+.menu-hints {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(6px + var(--safe-b));
+  pointer-events: none;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin: 8px 0 6px;
+}
+
+.cups {
+  gap: 10px;
+}
+
+.cup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 30px;
+  filter: grayscale(1) opacity(0.35);
+}
+
+.cup small {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cup.won {
+  filter: none;
+  animation: bob 2s ease-in-out infinite;
+}
+
+.cup.silver.won span {
+  filter: grayscale(1) brightness(1.4);
+}
+
+.cup.bronze.won span {
+  filter: sepia(1) saturate(2) hue-rotate(-20deg) brightness(0.85);
+}
+
+/* ---------- Garage / track select ---------- */
+.garage,
+.track-select {
+  background: linear-gradient(90deg, rgba(12, 8, 34, 0.55), rgba(12, 8, 34, 0) 30%, rgba(12, 8, 34, 0) 62%, rgba(12, 8, 34, 0.6));
+}
+
+.garage-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(200px, 250px) 1fr minmax(290px, 360px);
+  gap: 16px;
+  min-height: 0;
+  align-items: start;
+}
+
+.garage-stage {
+  min-height: 200px;
+}
+
+.car-list,
+.track-list {
+  gap: 8px;
+}
+
+.car-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  padding: 8px 12px 6px;
+}
+
+.car-item.selected {
+  border-color: var(--yellow);
+  box-shadow: 0 4px 0 rgba(12, 8, 34, 0.5), inset 0 0 0 1px var(--yellow);
+}
+
+.car-item .lock {
+  margin-left: auto;
+  font-style: normal;
+}
+
+.car-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
+}
+
+.car-info h2,
+.track-info h2 {
+  margin-bottom: 2px;
+}
+
+.stats {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.stat {
+  display: grid;
+  grid-template-columns: 96px 1fr 22px;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.stat .bar {
+  height: 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.stat .bar i {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--cyan), var(--pink), var(--yellow));
+  transition: width 0.35s cubic-bezier(0.2, 1.3, 0.4, 1);
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  padding: 0;
+  outline: none;
+  transition: transform 0.12s;
+}
+
+.swatch.on {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px var(--pink);
+}
+
+.swatch.focused,
+.swatch:hover {
+  transform: scale(1.18);
+}
+
+.swatch.gold {
+  background: linear-gradient(135deg, #fff3b0, #ffcf40, #b8860b) !important;
+}
+
+.swatch.custom {
+  background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.swatch.custom::-webkit-color-swatch-wrapper {
+  padding: 0;
+  opacity: 0;
+}
+
+.locked-msg {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  font-weight: 700;
+}
+
+.mini-preview {
+  width: 150px;
+  height: 150px;
+  flex: none;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(27, 20, 70, 0.7), rgba(27, 20, 70, 0.2) 70%, transparent 71%);
+}
+
+.records {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.records div {
+  display: flex;
+  flex-direction: column;
+  opacity: 0.9;
+}
+
+.records b {
+  font-family: var(--display);
+  font-size: 22px;
+  font-style: italic;
+  color: var(--yellow);
+}
+
+/* ---------- Cups ---------- */
+.cup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  max-width: 980px;
+  width: 100%;
+  margin: auto;
+}
+
+.cup-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  padding: 20px 16px;
+  border-color: var(--cup);
+}
+
+.cup-card:hover,
+.cup-card.focused {
+  transform: translateY(-6px) scale(1.03);
+}
+
+.cup-icon {
+  font-size: 64px;
+  font-style: normal;
+  filter: drop-shadow(0 6px 0 rgba(12, 8, 34, 0.5));
+}
+
+.cup-name {
+  font-size: 28px;
+  color: var(--cup);
+}
+
+.help-table td {
+  font-size: 14px;
+}
+
+.tips {
+  margin: 14px 0 0;
+  padding-left: 20px;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+/* ---------- Touch controls ---------- */
+.touch-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none !important;
+  z-index: 20;
+}
+
+.touch-controls .tgroup {
+  position: absolute;
+  display: flex;
+  gap: 14px;
+  pointer-events: none;
+}
+
+.touch-controls .tgroup.left {
+  left: calc(16px + var(--safe-l));
+  bottom: calc(24px + var(--safe-b));
+}
+
+.touch-controls .tgroup.right {
+  right: calc(16px + var(--safe-r));
+  bottom: calc(24px + var(--safe-b));
+  align-items: flex-end;
+}
+
+.touch-controls .tgroup.top {
+  right: calc(16px + var(--safe-r));
+  top: calc(100px + var(--safe-t));
+  flex-direction: row;
+}
+
+.touch-controls .tcol {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.tbtn {
+  pointer-events: auto;
+  touch-action: none;
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 20px;
+  color: #fff;
+  background: rgba(27, 20, 70, 0.45);
+  border: 3px solid rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tbtn.steer {
+  width: 96px;
+  height: 96px;
+  font-size: 34px;
+}
+
+.tbtn.gas {
+  width: 104px;
+  height: 104px;
+  background: rgba(46, 194, 126, 0.45);
+}
+
+.tbtn.small {
+  width: 70px;
+  height: 70px;
+  font-size: 14px;
+}
+
+.tbtn.boost {
+  background: rgba(61, 224, 255, 0.4);
+}
+
+.tbtn.drift {
+  background: rgba(255, 79, 163, 0.4);
+}
+
+.tbtn.tiny {
+  width: 48px;
+  height: 48px;
+  font-size: 16px;
+  font-style: normal;
+}
+
+.tbtn.on {
+  transform: scale(0.92);
+  background: rgba(255, 210, 63, 0.7);
+  color: var(--ink);
+}
+
+@keyframes logoIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.9);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+}
+
+@keyframes shine {
+  0%,
+  100% {
+    background-position: 0% 0;
+  }
+  50% {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes prismSpin {
+  to {
+    filter: drop-shadow(0 6px 0 rgba(12, 8, 34, 0.6)) hue-rotate(360deg);
+  }
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@media (max-width: 900px) {
+  .garage-body {
+    grid-template-columns: 1fr;
+  }
+  .garage-stage {
+    min-height: 34vh;
+    order: -1;
+  }
+  .car-list,
+  .track-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .car-item {
+    font-size: 15px;
+  }
+  .main-menu {
+    background: rgba(12, 8, 34, 0.55);
+  }
+  .menu-side {
+    display: none;
+  }
+}
+
+@media (max-height: 560px) {
+  .logo-text .l1,
+  .logo-text .l2 {
+    font-size: 44px;
+  }
+  .menu-btn .sub {
+    display: none;
+  }
+  .menu-btn {
+    padding: 5px 12px 4px;
+    font-size: 18px;
+  }
+}
+
+/* Touch layout: move HUD pieces away from the thumb buttons. */
+.touch-on .hud .speedo {
+  bottom: auto;
+  top: calc(4px + var(--safe-t));
+  right: 50%;
+  margin-right: -70px;
+  width: 140px;
+  height: 140px;
+}
+
+.touch-on .hud .speedo .num {
+  top: 38px;
+  font-size: 36px;
+}
+
+.touch-on .hud .speedo .unit {
+  top: 74px;
+  font-size: 11px;
+}
+
+.touch-on .hud .speedo .gear {
+  top: 88px;
+  font-size: 14px;
+}
+
+.touch-on .hud .minimap {
+  bottom: auto;
+  top: calc(70px + var(--safe-t));
+  width: 100px;
+  height: 100px;
+}
+
+.touch-on .hud .standings {
+  display: none;
+}
+
+@media (max-height: 560px) {
+  .menu-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .menu-left {
+    width: min(620px, 100%);
+    gap: 6px;
+  }
+  .logo {
+    padding-left: 54px;
+  }
+  .logo-prism {
+    width: 42px;
+    height: 42px;
+  }
+  .logo-tag {
+    display: none;
+  }
+  .logo-text .l1,
+  .logo-text .l2 {
+    display: inline-block;
+    font-size: 38px;
+    margin-left: 0;
+    margin-right: 10px;
+  }
+  .menu-btn .ico {
+    font-size: 18px;
+    width: 24px;
+  }
+  .screen {
+    padding-top: calc(10px + var(--safe-t));
+  }
+  .screen h1 {
+    font-size: 30px;
+  }
+  .garage-stage {
+    min-height: 0;
+  }
+  .panel {
+    padding: 12px 14px;
   }
 }

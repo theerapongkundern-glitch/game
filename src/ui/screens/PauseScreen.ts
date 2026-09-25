@@ -17,7 +17,7 @@ export class PauseScreen extends Screen {
           .catch(() => game.toast('Settings are not available yet'));
       }),
     );
-    box.append(this.button('Quit to menu', () => game.toMenu()));
+    box.append(this.button('Quit to menu', () => game.quitRace()));
     const hints = el('div', { class: 'hint-bar', html: '<span><kbd>Esc</kbd> / <kbd>P</kbd> resume</span><span><kbd>R</kbd> reset car</span><span><kbd>C</kbd> camera</span>' });
     box.append(hints);
     this.root.append(box);

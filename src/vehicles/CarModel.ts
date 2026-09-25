@@ -108,9 +108,13 @@ export function buildCarModel(def: CarDef, color: string, quality: 'low' | 'medi
   const curveSeg = quality === 'low' ? 6 : 10;
 
   // --- Lower body from the side profile ------------------------------------------------------
-  const prof: [number, number][] = s.profile.map(([px, py]) => [L / 2 - px * L, clearance + py * (bodyTop - clearance)]);
-  // Ensure it starts/ends at the bottom.
-  const profile: [number, number][] = [[L / 2, clearance], ...prof, [-L / 2, clearance]];
+  // The extrude bevel grows the outline by `bevel` in every direction, so inset the profile
+  // to keep the final body exactly L long and bodyTop high (lights sit on the real surface).
+  const hx = L / 2 - bevel;
+  const y0 = clearance + bevel;
+  const y1 = bodyTop - bevel;
+  const prof: [number, number][] = s.profile.map(([px, py]) => [hx - px * hx * 2, y0 + py * (y1 - y0)]);
+  const profile: [number, number][] = [[hx, y0], ...prof, [-hx, y0]];
   paintParts.push(nonIndexed(extrudeProfile(profile, W, bevel, curveSeg)));
 
   // --- Cabin (glass) + roof ---------------------------------------------------------------
@@ -130,7 +134,9 @@ export function buildCarModel(def: CarDef, color: string, quality: 'low' | 'medi
     [ct + slopeR * 0.3, cabinBase + (roofY - cabinBase) * 0.55],
     [ct, cabinBase],
   ];
-  glassParts.push(nonIndexed(extrudeProfile(cabinProfile, cw, 0.06, curveSeg)));
+  const cb = 0.06;
+  const cabinInset: [number, number][] = cabinProfile.map(([x, y], i) => [x + (i < 3 ? -cb : cb), i === 0 || i === cabinProfile.length - 1 ? y : y - cb]);
+  glassParts.push(nonIndexed(extrudeProfile(cabinInset, cw, cb, curveSeg)));
   // Roof panel in body colour.
   const roofLen = Math.max(0.3, cabinLen - slopeF - slopeR - 0.05);
   const roof = new THREE.BoxGeometry(cw * 0.96, 0.07, roofLen);
@@ -143,13 +149,15 @@ export function buildCarModel(def: CarDef, color: string, quality: 'low' | 'medi
     paintParts.push(nonIndexed(place(pillarR, side * (cw / 2 - 0.02), (roofY + cabinBase) / 2, ct + slopeR * 0.6, 0.35, 0, 0)));
   }
 
-  // --- Racing stripe --------------------------------------------------------------------
+  // --- Racing stripes: roof centre + both flanks -------------------------------------------------
   {
     const stripeW = W * 0.16;
-    const hood = new THREE.BoxGeometry(stripeW, 0.02, Math.max(0.2, L / 2 - cf + L * 0.35));
-    accentParts.push(nonIndexed(place(hood, 0, bodyTop + 0.005, (L / 2 + cf) / 2 - 0.05, 0.05, 0, 0)));
     const roofStripe = new THREE.BoxGeometry(stripeW, 0.02, roofLen * 0.98);
     accentParts.push(nonIndexed(place(roofStripe, 0, roofY + 0.065, (cf - slopeF + ct + slopeR) / 2)));
+    for (const side of [-1, 1]) {
+      const flank = new THREE.BoxGeometry(0.02, 0.07, L * 0.62);
+      accentParts.push(nonIndexed(place(flank, side * (W / 2 + 0.004), clearance + (bodyTop - clearance) * 0.66, -L * 0.02)));
+    }
   }
 
   // --- Bumpers, skirts, grille ---------------------------------------------------------------
