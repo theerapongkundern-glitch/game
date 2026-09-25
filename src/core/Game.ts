@@ -18,6 +18,8 @@ import { GarageScene } from '../ui/scenes/GarageScene';
 import { TrackPreview } from '../ui/scenes/TrackPreview';
 import type { GarageScreen } from '../ui/screens/GarageScreen';
 import type { TrackSelectScreen } from '../ui/screens/TrackSelectScreen';
+import type { PodiumScreen } from '../ui/screens/PodiumScreen';
+import { PodiumScene } from '../ui/scenes/PodiumScene';
 import { TouchControls, isTouchDevice } from '../ui/TouchControls';
 import type { MusicThemeId } from '../tracks/types';
 
@@ -29,6 +31,8 @@ export interface ModeController {
   onRaceOver(session: RaceSession): void;
   /** Optional: leaving the mode mid-way (quit from pause). */
   quit?(): void;
+  /** Optional: called right after the race session is built (add ghosts, gates...). */
+  onSessionStart?(session: RaceSession): void;
 }
 
 interface Background {
@@ -196,6 +200,20 @@ export class Game {
     load(screen.trackId);
   }
 
+  /** Grand Prix finale: 3D podium background + podium screen. */
+  showPodium(screen: PodiumScreen) {
+    this.endSession();
+    this.disposeMenuBackground();
+    try {
+      this.setBackground(new PodiumScene(this.renderer, screen.order.slice(0, 3)));
+    } catch (err) {
+      console.error(err);
+    }
+    this.playMusic('podium');
+    this.sfx('podium');
+    this.showScreen(screen);
+  }
+
   private onNav(nav: MenuNav) {
     if (!this.input.menuMode || !this.screen) return;
     this.screen.handleNav(nav);
@@ -266,6 +284,7 @@ export class Game {
           };
           if (this.autotest) for (const rc of session.sim.humanCars) rc.brain = factory(rc, session.sim, false);
           this.session = session;
+          mode.onSessionStart?.(session);
           this.paused = false;
           this.input.menuMode = false;
           this.renderer.dynScale = 1;

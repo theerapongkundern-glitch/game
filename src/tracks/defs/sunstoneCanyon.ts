@@ -53,5 +53,5 @@ export const sunstoneCanyon: TrackDef = {
       name: 'Slot canyon',
     },
   ],
-  rush: { start: 28, perGate: 7 },
+  rush: { start: 25, perGate: 8.5 },
 };

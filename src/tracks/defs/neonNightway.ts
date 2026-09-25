@@ -60,5 +60,5 @@ export const neonNightway: TrackDef = {
       name: 'Back alley',
     },
   ],
-  rush: { start: 28, perGate: 7 },
+  rush: { start: 25, perGate: 6.5 },
 };

@@ -59,5 +59,5 @@ export const coconutCoast: TrackDef = {
       name: 'Dune dash',
     },
   ],
-  rush: { start: 28, perGate: 7 },
+  rush: { start: 25, perGate: 8 },
 };

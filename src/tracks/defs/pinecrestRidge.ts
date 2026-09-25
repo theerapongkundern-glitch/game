@@ -57,5 +57,5 @@ export const pinecrestRidge: TrackDef = {
       name: 'Logging trail',
     },
   ],
-  rush: { start: 30, perGate: 8 },
+  rush: { start: 25, perGate: 7.5 },
 };

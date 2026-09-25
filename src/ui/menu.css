@@ -1007,3 +1007,80 @@ input[type='range'] {
     padding: 12px 14px;
   }
 }
+
+/* ---------- Grand Prix ---------- */
+.standings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 16px;
+  max-width: 1150px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.standings-grid .results-table td,
+.standings-grid .results-table th {
+  padding: 6px 8px;
+}
+
+.podium {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.podium-head h1 {
+  font-size: clamp(34px, 5vw, 60px);
+  background: linear-gradient(90deg, #fff, var(--yellow), var(--pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 4px 0 rgba(12, 8, 34, 0.6));
+  text-shadow: none;
+}
+
+.podium-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(340px, 100%);
+}
+
+.podium-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.podium-row {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 8px;
+}
+
+.podium-row.me {
+  background: linear-gradient(90deg, rgba(255, 79, 163, 0.6), rgba(123, 92, 255, 0.35));
+}
+
+.unlock-panel {
+  animation: logoIn 0.8s 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  border-color: var(--yellow);
+}
+
+.unlock-item {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 22px;
+}
+
+@media (max-width: 900px) {
+  .standings-grid {
+    grid-template-columns: 1fr;
+  }
+  .podium {
+    flex-direction: column;
+  }
+}

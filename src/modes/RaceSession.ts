@@ -147,7 +147,19 @@ export class RaceSession implements SimUI {
     const views: View[] = [];
     for (const rc of sim.cars) {
       rc.car.sync(alpha, dt, this.world.time);
-      if (rc.eliminated) continue;
+      if (rc.eliminated) {
+        // Knocked-out cars pop a confetti puff and fade away (no crashes, ever).
+        if (rc.car.visible) {
+          if (!rc.data.outFx) {
+            rc.data.outFx = 1;
+            this.confetti(rc.car.physics.x, rc.car.physics.y + 1, rc.car.physics.z);
+          }
+          rc.car.opacity = Math.max(0, rc.car.opacity - dt * 0.9);
+          rc.car.visual.setOpacity(rc.car.opacity);
+          if (rc.car.opacity <= 0) rc.car.visible = false;
+        }
+        continue;
+      }
       if (rc.ghostTime > 0) rc.car.visual.setOpacity(0.5 + 0.3 * Math.sin(sim.elapsed * 30));
       else if (rc.car.opacity >= 1 && rc.car.visual.paint.opacity < 1) rc.car.visual.setOpacity(1);
     }
@@ -214,6 +226,21 @@ export class RaceSession implements SimUI {
     const sf = clamp(p.speed / p.p.topSpeed, 0, 1.3);
     const blur = clamp((sf - 0.45) * 1.4, 0, 1) * 0.7 + (p.boosting ? 0.5 : 0);
     return { blur, aberration: p.boosting ? 0.8 : 0, bloom: bloom + (p.boosting ? 0.15 : 0) };
+  }
+
+  /** Colourful celebration burst. */
+  confetti(x: number, y: number, z: number, count = 60) {
+    const cols = [
+      [1, 0.31, 0.64],
+      [1, 0.82, 0.25],
+      [0.24, 0.88, 1],
+      [0.64, 0.9, 0.21],
+      [0.7, 0.3, 1],
+    ];
+    for (let i = 0; i < count; i++) {
+      const c = cols[i % cols.length];
+      this.world.effects.sparks.emit({ x, y, z, vx: (Math.random() - 0.5) * 10, vy: 4 + Math.random() * 6, vz: (Math.random() - 0.5) * 10, life: 1.6, size: 0.35, endSize: 0.25, r: c[0] * 1.5, g: c[1] * 1.5, b: c[2] * 1.5, gravity: 6, drag: 1.2 });
+    }
   }
 
   setCameraMode(mode: CameraMode) {
