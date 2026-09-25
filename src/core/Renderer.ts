@@ -19,7 +19,7 @@ export interface QualityPreset {
 export const QUALITY: Record<Quality, QualityPreset> = {
   low: { maxPixelRatio: 1, shadows: 0, post: false, bloom: false, blurSamples: 0, msaa: 0, scenery: 0.45, antialias: false },
   medium: { maxPixelRatio: 1.25, shadows: 1024, post: true, bloom: false, blurSamples: 5, msaa: 2, scenery: 0.75, antialias: true },
-  high: { maxPixelRatio: 1.75, shadows: 2048, post: true, bloom: true, blurSamples: 8, msaa: 4, scenery: 1, antialias: true },
+  high: { maxPixelRatio: 1.5, shadows: 2048, post: true, bloom: true, blurSamples: 8, msaa: 4, scenery: 1, antialias: true },
 };
 
 /** A camera drawn into a normalised rectangle of the canvas (y from the bottom). */

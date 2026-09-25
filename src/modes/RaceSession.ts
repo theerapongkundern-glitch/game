@@ -82,6 +82,17 @@ export class RaceSession implements SimUI {
     };
     for (const rc of this.sim.cars) this.world.scene.add(rc.car.object);
 
+    // Night tracks: real headlight spots on the players' cars (dynamic lighting).
+    if (this.world.sky.preset.night) {
+      for (const rc of this.sim.humanCars) {
+        const spot = new THREE.SpotLight('#fff1d0', 70, 60, 0.55, 0.55, 1.2);
+        const L = rc.car.def.shape.length;
+        spot.position.set(0, 0.9, L / 2);
+        spot.target.position.set(0, -0.5, L / 2 + 22);
+        spot.castShadow = false;
+        rc.car.object.add(spot, spot.target);
+      }
+    }
     const humans = this.sim.humanCars.sort((a, b) => a.player - b.player);
     humans.forEach((rc, i) => {
       const rect = this.split ? { x: 0, y: i === 0 ? 0 : 0.5, w: 1, h: 0.5 } : { x: 0, y: 0, w: 1, h: 1 };

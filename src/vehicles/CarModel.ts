@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { CarDef, CarShape } from './CarDefs';
+import { softDotTexture } from '../tracks/textures';
 
 export interface WheelVisual {
   /** Steering pivot (rotates around Y). */
@@ -305,12 +306,11 @@ export function buildCarModel(def: CarDef, color: string, quality: 'low' | 'medi
   flameGeo.translate(0, 0, -0.5);
   const exhausts: THREE.Vector3[] = [];
   const flames: THREE.Mesh[] = [];
+  const pipes: THREE.BufferGeometry[] = [];
   for (const side of [-1, 1]) {
     const pos = new THREE.Vector3(side * W * 0.22, clearance + 0.12, -L / 2 - 0.05);
     exhausts.push(pos);
-    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.2, 8).rotateX(Math.PI / 2), rim);
-    pipe.position.copy(pos);
-    body.add(pipe);
+    pipes.push(nonIndexed(place(new THREE.CylinderGeometry(0.07, 0.07, 0.2, 8).rotateX(Math.PI / 2), pos.x, pos.y, pos.z)));
     const f = new THREE.Mesh(flameGeo, flameMat);
     f.position.copy(pos);
     f.visible = false;
@@ -319,9 +319,24 @@ export function buildCarModel(def: CarDef, color: string, quality: 'low' | 'medi
     flames.push(f);
   }
 
+  const pipeGeo = mergeGeometries(pipes, false);
+  if (pipeGeo) {
+    const pipeMesh = new THREE.Mesh(pipeGeo, rim);
+    body.add(pipeMesh);
+  }
+  for (const p of pipes) p.dispose();
+
+  // Soft blob shadow: grounds every car even when shadow maps are off or far away.
+  const blobMat = new THREE.MeshBasicMaterial({ map: typeof document !== 'undefined' ? softDotTexture() : null, color: '#000000', transparent: true, opacity: 0.42, depthWrite: false });
+  const blob = new THREE.Mesh(new THREE.PlaneGeometry(W * 1.35, L * 1.15).rotateX(-Math.PI / 2), blobMat);
+  blob.position.y = 0.04;
+  blob.renderOrder = 1;
+  root.add(blob);
+
   const rearContacts = [new THREE.Vector3(track, 0.05, -s.wheelbase / 2), new THREE.Vector3(-track, 0.05, -s.wheelbase / 2)];
 
   const allMats = [paint, accent, trim, glass, headLights, tailLights, tyre, rim];
+  const setBlob = (o: number) => (blobMat.opacity = 0.42 * o);
   return {
     root,
     body,
@@ -343,6 +358,7 @@ export function buildCarModel(def: CarDef, color: string, quality: 'low' | 'medi
         m.opacity = o;
         m.depthWrite = o >= 1;
       }
+      setBlob(o);
     },
     dispose() {
       root.traverse((o) => {
@@ -350,6 +366,7 @@ export function buildCarModel(def: CarDef, color: string, quality: 'low' | 'medi
       });
       for (const m of allMats) m.dispose();
       flameMat.dispose();
+      blobMat.dispose();
     },
   };
 }

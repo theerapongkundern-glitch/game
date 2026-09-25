@@ -52,7 +52,7 @@ function buildingMaterial(): THREE.MeshStandardMaterial {
             float h = whash(id + floor(vWPos.xz / 40.0));
             float lit = step(0.58, h);
             vec3 wc = mix(vec3(1.0, 0.82, 0.5), mix(vec3(0.4, 0.9, 1.0), vec3(1.0, 0.45, 0.8), step(0.8, h)), step(0.7, h));
-            totalEmissiveRadiance += win * lit * wc * 1.1 * step(1.5, vWPos.y);
+            totalEmissiveRadiance += win * lit * wc * 0.9 * step(1.5, vWPos.y);
             diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.05, 0.06, 0.12), win * (1.0 - lit) * 0.6);
           }
         }`,

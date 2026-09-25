@@ -25,5 +25,15 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.1",
     "vitest": "^5.0.1"
-  }
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "keywords": [
+    "game",
+    "racing",
+    "threejs",
+    "arcade",
+    "webgl"
+  ]
 }

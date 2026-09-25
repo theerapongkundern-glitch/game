@@ -106,8 +106,8 @@ export const SKY_PRESETS: Record<SkyPresetId, SkyPreset> = {
     clouds: 0.25,
     cloudColor: '#3b2f7a',
     stars: 1,
-    exposure: 1.15,
-    bloom: 0.95,
+    exposure: 1.1,
+    bloom: 0.72,
     night: true,
   },
   dusk: {

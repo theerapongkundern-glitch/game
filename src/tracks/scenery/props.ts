@@ -17,14 +17,14 @@ function bend(g: THREE.BufferGeometry, amount: number, height: number) {
 export function palmGeometry(): THREE.BufferGeometry {
   const parts: { geo: THREE.BufferGeometry; color: string }[] = [];
   const h = 7.5;
-  const trunk = new THREE.CylinderGeometry(0.22, 0.34, h, 7, 6);
+  const trunk = new THREE.CylinderGeometry(0.22, 0.34, h, 6, 5);
   translate(trunk, 0, h / 2, 0);
   bend(trunk, 1.4, h);
   parts.push({ geo: trunk, color: '#a47148' });
   // Trunk rings.
-  for (let k = 1; k < 6; k++) {
+  for (let k = 1; k < 6; k += 2) {
     const y = (k / 6) * h;
-    const ring = new THREE.TorusGeometry(0.3 - k * 0.015, 0.06, 4, 8);
+    const ring = new THREE.TorusGeometry(0.3 - k * 0.015, 0.06, 3, 6);
     ring.rotateX(Math.PI / 2);
     translate(ring, 1.4 * (y / h) * (y / h), y, 0);
     parts.push({ geo: ring, color: '#8a5a36' });

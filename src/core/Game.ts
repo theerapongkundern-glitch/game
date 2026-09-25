@@ -104,6 +104,10 @@ export class Game {
         e.preventDefault();
         this.toggleDebug();
       }
+      // P toggles pause both ways (Esc already resumes via the menu "back" action).
+      if (e.code === 'KeyP' && this.paused && this.session && !e.repeat && this.screen?.root.classList.contains('pause')) {
+        this.resume();
+      }
     });
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && this.session && !this.paused && !this.autotest) this.pause();
@@ -139,6 +143,8 @@ export class Game {
       screen.mount(this.ui);
       this.input.menuMode = true;
     }
+    // Fade the race HUD out behind menus (pause, results, standings).
+    this.ui.classList.toggle('has-screen', !!screen && !!this.session);
     this.updateTouch();
   }
 
@@ -243,7 +249,14 @@ export class Game {
     this.playMusic('menu');
     this.music.setMuffled(false);
     const show = () => {
-      import('../ui/screens/MainMenu').then(({ MainMenu }) => this.showScreenWithBackground(new MainMenu(this)));
+      import('../ui/screens/MainMenu').then(({ MainMenu }) => {
+        this.showScreenWithBackground(new MainMenu(this));
+        if (!this.save.data.seenIntro) {
+          this.save.data.seenIntro = true;
+          this.save.save();
+          setTimeout(() => this.toast('Welcome! Pick Quick Race to start — see "How to play" for controls.'), 600);
+        }
+      });
     };
     if (!this.menuBg) {
       this.showScreen(null);
@@ -324,6 +337,8 @@ export class Game {
     this.music.setMuffled(false);
     this.showScreen(null);
     this.input.menuMode = false;
+    // Drop this frame's key edges so the key that resumed (P / Esc / Start) doesn't pause again.
+    this.input.endFrame();
   }
 
   restartRace() {
