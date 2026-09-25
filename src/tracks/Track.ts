@@ -327,7 +327,17 @@ export class Track {
   readonly length: number;
   readonly bounds = { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity };
 
-  constructor(readonly def: TrackDef) {
+  readonly def: TrackDef;
+
+  constructor(source: TrackDef) {
+    // Apply the authoring scale once so everything downstream works in world metres.
+    const k = source.scale ?? 1;
+    const sc = (p: TrackPoint): TrackPoint => ({ ...p, x: p.x * k, z: p.z * k });
+    const def: TrackDef = (this.def = {
+      ...source,
+      points: source.points.map(sc),
+      shortcuts: source.shortcuts?.map((s) => ({ ...s, via: s.via.map(sc) })),
+    });
     const mainSampled = sampleSpline(def.points, true, def.width);
     // Resample exactly on SAMPLE_SPACING by treating spacing as nominal: we keep the
     // real spacing (very close to 2 m) but store length = n * SAMPLE_SPACING for indexing.

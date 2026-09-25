@@ -15,6 +15,8 @@ export interface ThemeStyle {
   /** Terrain undulation height away from the track (m). */
   hills: number;
   hillScale: number;
+  /** If true, noise goes below the base height too (lakes/lagoons where there is water). */
+  signedHills?: boolean;
   /** Optional water plane. */
   water?: { color: string; deep: string; level: number };
   /** Shortcut/dirt path look. */
@@ -46,8 +48,9 @@ export const THEMES: Record<ThemeId, ThemeStyle> = {
     groundTint: '#ffffff',
     barrier: { kind: 'foam', a: '#ff6f59', b: '#fff3e0', height: 1.0 },
     curb: ['#ff5f4a', '#ffffff'],
-    hills: 7,
-    hillScale: 0.01,
+    hills: 9,
+    hillScale: 0.008,
+    signedHills: true,
     water: { color: '#2fd0d8', deep: '#1467c9', level: -1.6 },
     dirt: { base: '#e6c38a', specks: ['#d6ae70', '#f2d7a5', '#c99d5d'] },
     sand: { base: '#f3d9a0', specks: ['#e8c985', '#fbe7bb', '#dcb772'] },
@@ -75,9 +78,10 @@ export const THEMES: Record<ThemeId, ThemeStyle> = {
     groundTint: '#ffffff',
     barrier: { kind: 'wood', a: '#a0643a', b: '#ffd23f', height: 1.0 },
     curb: ['#ff4f4f', '#ffffff'],
-    hills: 26,
-    hillScale: 0.008,
-    water: { color: '#4fc6e8', deep: '#2b7fc0', level: -6 },
+    hills: 34,
+    hillScale: 0.006,
+    signedHills: true,
+    water: { color: '#4fc6e8', deep: '#2b7fc0', level: -5 },
     dirt: { base: '#9b6a3e', specks: ['#85592f', '#b27c4c', '#6f4a28'] },
     sand: { base: '#d8c08a', specks: ['#c8ae74', '#e6d09c'] },
     gantry: { banner: '#2ec27e', text: '#ffffff', pillar: '#a0643a' },

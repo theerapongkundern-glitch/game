@@ -1,0 +1,63 @@
+import type { TrackDef } from '../types';
+
+/** Tropical beach coast: seaside straight, lagoon jump, dune shortcut, cliff road. */
+export const coconutCoast: TrackDef = {
+  id: 'coconut-coast',
+  name: 'Coconut Coast',
+  tagline: 'Sun, surf and a lagoon jump. Palm trees cheer you on!',
+  theme: 'beach',
+  sky: 'day',
+  music: 'beach',
+  scale: 1.2,
+  width: 16,
+  shoulder: 8,
+  shoulderSurface: 'sand',
+  seed: 1201,
+  sea: { dir: [0, -1], start: 190 },
+  colors: { primary: '#2fd0d8', secondary: '#ffd23f' },
+  points: [
+    { x: 0, z: -120 },
+    { x: 130, z: -128 },
+    { x: 250, z: -118 },
+    { x: 340, z: -78, bank: 4 },
+    { x: 382, z: 0, bank: 5 },
+    { x: 360, z: 86, y: 1, bank: 4 },
+    { x: 296, z: 136, y: 2 },
+    { x: 214, z: 146, y: 2 },
+    { x: 150, z: 112, y: 2, bank: -4 },
+    { x: 86, z: 138, y: 3 },
+    { x: 24, z: 196, y: 5, bank: -3 },
+    { x: -64, z: 214, y: 7 },
+    { x: -156, z: 184, y: 8, bank: -5 },
+    { x: -222, z: 118, y: 7, bank: -6, w: 17 },
+    { x: -214, z: 40, y: 5 },
+    { x: -150, z: 18, y: 4, bank: 4 },
+    { x: -96, z: -26, y: 3 },
+    { x: -150, z: -76, y: 1, bank: 3 },
+    { x: -112, z: -112 },
+  ],
+  surfaces: [
+    { from: 17.2, to: 18.4, type: 'wet', lat: [-8, 1] },
+    { from: 0.4, to: 0.9, type: 'sand', lat: [-8, -5.5] },
+  ],
+  ramps: [{ at: 1.45, length: 16, height: 2.2, width: 9, offset: 0 }],
+  boostPads: [
+    { at: 0.25, offset: 3.5 },
+    { at: 7.4, offset: -3 },
+    { at: 0.6, shortcut: 0, offset: 0, width: 3.5 },
+  ],
+  shortcuts: [
+    {
+      from: 14,
+      to: 17,
+      via: [
+        { x: -206, z: -14, y: 3 },
+        { x: -186, z: -64, y: 2 },
+      ],
+      width: 11,
+      surface: 'dirt',
+      name: 'Dune dash',
+    },
+  ],
+  rush: { start: 28, perGate: 7 },
+};

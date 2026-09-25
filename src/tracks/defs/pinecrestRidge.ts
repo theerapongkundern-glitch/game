@@ -1,0 +1,61 @@
+import type { TrackDef } from '../types';
+
+/** Mountain forest at sunset: big climbs, a switchback, a creek jump and a dirt shortcut. */
+export const pinecrestRidge: TrackDef = {
+  id: 'pinecrest-ridge',
+  name: 'Pinecrest Ridge',
+  tagline: 'Climb through the pines, leap the creek and race the sunset.',
+  theme: 'forest',
+  sky: 'sunset',
+  music: 'forest',
+  scale: 1.15,
+  width: 14,
+  shoulder: 6,
+  shoulderSurface: 'grass',
+  seed: 3413,
+  colors: { primary: '#2ec27e', secondary: '#ff8a3d' },
+  weather: 'fireflies',
+  points: [
+    { x: -60, z: 0, y: 0 },
+    { x: 60, z: 0, y: 0 },
+    { x: 170, z: 10, y: 3 },
+    { x: 262, z: 58, y: 9, bank: -4 },
+    { x: 296, z: 138, y: 15, bank: -5 },
+    { x: 262, z: 212, y: 21 },
+    { x: 182, z: 244, y: 26, bank: 3 },
+    { x: 100, z: 222, y: 30 },
+    { x: 38, z: 256, y: 32, bank: -4 },
+    { x: -44, z: 286, y: 30, bank: -5 },
+    { x: -134, z: 258, y: 26 },
+    { x: -176, z: 176, y: 21, bank: 5 },
+    { x: -128, z: 116, y: 16 },
+    { x: -178, z: 52, y: 11, bank: 4 },
+    { x: -232, z: -26, y: 6 },
+    { x: -198, z: -98, y: 3, bank: 5 },
+    { x: -124, z: -92, y: 1, w: 13 },
+    { x: -96, z: -34, y: 0 },
+  ],
+  surfaces: [
+    { from: 15.5, to: 16.6, type: 'wet' },
+    { from: 6.6, to: 7.3, type: 'wet', lat: [0, 7] },
+  ],
+  ramps: [{ at: 13.35, length: 15, height: 2.1, width: 8, offset: 0 }],
+  boostPads: [
+    { at: 1.4, offset: 3 },
+    { at: 4.7, offset: -2.5 },
+  ],
+  shortcuts: [
+    {
+      from: 9,
+      to: 11.8,
+      via: [
+        { x: -110, z: 214, y: 26 },
+        { x: -112, z: 168, y: 22 },
+      ],
+      width: 9,
+      surface: 'dirt',
+      name: 'Logging trail',
+    },
+  ],
+  rush: { start: 30, perGate: 8 },
+};

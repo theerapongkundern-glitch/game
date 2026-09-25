@@ -359,11 +359,18 @@ export function buildTrackVisual(track: Track, lowDetail: boolean): TrackVisual 
 
   // --- Terrain -------------------------------------------------------------------------------
   const field = buildDistanceField(track);
+  const sea = track.def.sea;
   const terrainHeight = (x: number, z: number) => {
     const d = field.sample(x, z);
     const away = smoothstep(d.limit + 3, d.limit + 70, d.dist);
-    const n = theme.hills > 0 ? (fbm2(x * theme.hillScale, z * theme.hillScale, 4, track.def.seed) * 0.5 + 0.5) * theme.hills : 0;
-    return d.y - 0.12 - 0.4 * smoothstep(d.limit, d.limit + 4, d.dist) + away * n;
+    const f = fbm2(x * theme.hillScale, z * theme.hillScale, 4, track.def.seed);
+    const n = theme.hills > 0 ? (theme.signedHills ? f * 1.4 : f * 0.5 + 0.5) * theme.hills : 0;
+    let h = d.y - 0.12 - 0.4 * smoothstep(d.limit, d.limit + 4, d.dist) + away * n;
+    if (sea) {
+      const along = x * sea.dir[0] + z * sea.dir[1];
+      h -= smoothstep(sea.start, sea.start + 70, along) * 14 * smoothstep(d.limit + 2, d.limit + 25, d.dist);
+    }
+    return h;
   };
   {
     const b = track.bounds;

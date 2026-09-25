@@ -1,6 +1,7 @@
 import '@fontsource-variable/baloo-2';
 import '@fontsource-variable/rubik';
 import './ui/ui.css';
+import './ui/menu.css';
 import { Game } from './core/Game';
 
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;

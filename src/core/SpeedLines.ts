@@ -36,10 +36,10 @@ export class SpeedLines {
   private reset(i: number, initial: boolean) {
     const d = this.data;
     d[i * 5] = Math.random() * Math.PI * 2;
-    d[i * 5 + 1] = 1.1 + Math.random() * 2.2;
-    d[i * 5 + 2] = initial ? -Math.random() * 40 - 2 : -40 - Math.random() * 10;
+    d[i * 5 + 1] = 1.6 + Math.random() * 2.6;
+    d[i * 5 + 2] = initial ? -Math.random() * 36 - 8 : -44 - Math.random() * 10;
     d[i * 5 + 3] = 0.8 + Math.random() * 0.6;
-    d[i * 5 + 4] = 2 + Math.random() * 4;
+    d[i * 5 + 4] = 1.5 + Math.random() * 2.5;
   }
 
   /** `strength` 0..1 (speed fraction), `boost` adds extra streaks. */
@@ -53,7 +53,7 @@ export class SpeedLines {
     const d = this.data;
     for (let i = 0; i < this.count; i++) {
       d[i * 5 + 2] += speed * d[i * 5 + 3] * dt;
-      if (d[i * 5 + 2] > 1) this.reset(i, false);
+      if (d[i * 5 + 2] > -7) this.reset(i, false);
       const a = d[i * 5];
       const r = d[i * 5 + 1];
       const len = d[i * 5 + 4] * (0.5 + this.intensity);

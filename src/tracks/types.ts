@@ -69,6 +69,8 @@ export interface TrackDef {
   theme: ThemeId;
   sky: SkyPresetId;
   music: MusicThemeId;
+  /** Uniform horizontal scale applied to all x/z coordinates (default 1). */
+  scale?: number;
   /** Default full road width. */
   width: number;
   /** Run-off width between road edge and barrier, per side. */
@@ -86,6 +88,8 @@ export interface TrackDef {
   rush?: { start: number; perGate: number };
   /** Accent colours used by the UI card and minimap. */
   colors: { primary: string; secondary: string };
+  /** Optional sea: terrain drops below the water beyond `start` metres along `dir`. */
+  sea?: { dir: [number, number]; start: number };
   /** Ambient particles / weather hints for the theme. */
   weather?: 'none' | 'drizzle' | 'fireflies' | 'dust';
 }

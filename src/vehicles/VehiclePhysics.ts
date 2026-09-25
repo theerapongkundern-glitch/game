@@ -82,15 +82,15 @@ export function deriveParams(def: CarDef): VehicleParams {
   const wheelbase = def.shape.wheelbase;
   const a = wheelbase * 0.5;
   const b = wheelbase * 0.5;
-  const topSpeed = lerp(47, 72, n(s.speed));
-  const t100 = lerp(6.2, 2.6, n(s.accel));
+  const topSpeed = lerp(52, 76, n(s.speed));
+  const t100 = lerp(5.4, 2.9, n(s.accel));
   const forceMax = mass * (27.8 / t100) * 1.3;
   const knee = 0.42 * topSpeed;
   const power = forceMax * knee;
   const rollC = mass * 0.015;
   const dragAtTop = power / topSpeed - rollC * topSpeed;
   const dragC = dragAtTop / (topSpeed * topSpeed);
-  const mu = lerp(1.12, 1.42, n(s.handling));
+  const mu = lerp(1.5, 1.9, n(s.handling));
   const staticF = (mass * GRAVITY * b) / wheelbase;
   const staticR = (mass * GRAVITY * a) / wheelbase;
   return {
@@ -107,7 +107,7 @@ export function deriveParams(def: CarDef): VehicleParams {
     rollC,
     brakeDecel: GRAVITY * lerp(1.15, 1.35, n(s.handling)),
     mu,
-    downforce: 0.4 / (topSpeed * topSpeed),
+    downforce: 0.45 / (topSpeed * topSpeed),
     cornerF: staticF * mu * 9.5,
     cornerR: staticR * mu * 10,
     steerLow: lerp(0.5, 0.62, n(s.handling)),

@@ -1,0 +1,57 @@
+import type { TrackDef } from '../types';
+
+/** Desert canyon at golden hour: wide open straights, a huge canyon jump and a slot-canyon shortcut. */
+export const sunstoneCanyon: TrackDef = {
+  id: 'sunstone-canyon',
+  name: 'Sunstone Canyon',
+  tagline: 'Huge straights, towering mesas and the biggest jump in the cup.',
+  theme: 'desert',
+  sky: 'golden',
+  music: 'desert',
+  scale: 1.25,
+  width: 18,
+  shoulder: 8,
+  shoulderSurface: 'sand',
+  seed: 4523,
+  colors: { primary: '#ff8a3d', secondary: '#ffd23f' },
+  weather: 'dust',
+  points: [
+    { x: 0, z: 0 },
+    { x: 0, z: 150 },
+    { x: 28, z: 262, y: 3, bank: -4 },
+    { x: 110, z: 324, y: 6 },
+    { x: 222, z: 314, y: 8, bank: -5 },
+    { x: 300, z: 252, y: 8 },
+    { x: 330, z: 152, y: 6, bank: 3 },
+    { x: 392, z: 82, y: 4 },
+    { x: 482, z: 62, y: 3, bank: -4 },
+    { x: 562, z: 4, y: 3 },
+    { x: 566, z: -110, y: 2 },
+    { x: 484, z: -186, y: 1, bank: -5 },
+    { x: 362, z: -172 },
+    { x: 262, z: -118, bank: 4 },
+    { x: 182, z: -172, bank: -3 },
+    { x: 92, z: -194 },
+    { x: 18, z: -130, bank: -4 },
+  ],
+  surfaces: [{ from: 5.4, to: 6.2, type: 'sand', lat: [4, 9] }],
+  ramps: [
+    { at: 9.45, length: 18, height: 2.8, width: 10, offset: 0 },
+    { at: 1.2, length: 12, height: 1.4, width: 6, offset: -4.5 },
+  ],
+  boostPads: [
+    { at: 0.5, shortcut: 0, offset: 0, width: 4 },
+    { at: 7.5, offset: 0 },
+  ],
+  shortcuts: [
+    {
+      from: 12,
+      to: 14,
+      via: [{ x: 268, z: -190, y: 0 }],
+      width: 10,
+      surface: 'dirt',
+      name: 'Slot canyon',
+    },
+  ],
+  rush: { start: 28, perGate: 7 },
+};

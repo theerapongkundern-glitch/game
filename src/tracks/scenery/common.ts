@@ -126,7 +126,7 @@ export function translate(g: THREE.BufferGeometry, x: number, y: number, z: numb
 
 export interface SceneryResult {
   group: THREE.Group;
-  update(time: number, dt: number): void;
+  update(time: number, dt: number, focus?: THREE.Vector3): void;
   dispose(): void;
 }
 

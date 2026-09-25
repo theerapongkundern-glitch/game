@@ -33,7 +33,7 @@ export class World {
     this.scene.environmentIntensity = this.sky.preset.night ? 0.5 : 0.85;
     this.visual = buildTrackVisual(this.track, renderer.quality === 'low');
     this.scene.add(this.visual.group);
-    this.scenery = buildScenery(this.track, this.visual, q.scenery);
+    this.scenery = buildScenery(this.track, this.visual, q.scenery, q.shadows >= 2048);
     this.scene.add(this.scenery.group);
     this.effects = new Effects(renderer.quality);
     this.scene.add(this.effects.group);
@@ -44,7 +44,7 @@ export class World {
     this.time += dt;
     this.sky.follow(focus.x, focus.y, focus.z, this.time);
     this.visual.update(this.time);
-    this.scenery.update(this.time, dt);
+    this.scenery.update(this.time, dt, focus);
     this.effects.update(dt);
   }
 
