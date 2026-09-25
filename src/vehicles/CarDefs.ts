@@ -9,6 +9,9 @@ export interface CarStats {
 
 export type BodyStyle = 'coupe' | 'hatch' | 'bubble' | 'drift' | 'wagon' | 'hyper';
 export type SpoilerStyle = 'none' | 'lip' | 'wing' | 'tall' | 'ducktail';
+export type RimStyle = 'five' | 'multi' | 'mesh' | 'turbine' | 'dish';
+export type LightStyle = 'slim' | 'wide' | 'round';
+export type StripeStyle = 'none' | 'twin' | 'center' | 'flank';
 
 export interface CarShape {
   style: BodyStyle;
@@ -34,6 +37,16 @@ export interface CarShape {
   rimColor: string;
   /** Side-profile control points for the lower body, normalised (x: 0 front → 1 rear, y: 0..1 of bodyHeight). */
   profile: [number, number][];
+  /** Wheel design. */
+  rimStyle: RimStyle;
+  /** How far the fenders flare out over the wheels (m). */
+  flare: number;
+  lightStyle: LightStyle;
+  stripes: StripeStyle;
+  /** Roof finish: body colour, accent colour or gloss black. */
+  roof?: 'paint' | 'accent' | 'black';
+  /** Brake caliper colour. */
+  caliper?: string;
   /** Extra features. */
   roofScoop?: boolean;
   sideVents?: boolean;
@@ -88,6 +101,11 @@ export const CAR_DEFS: CarDef[] = [
       spoiler: 'lip',
       accent: '#ffffff',
       rimColor: '#d9dde6',
+      rimStyle: 'five',
+      flare: 0.05,
+      lightStyle: 'wide',
+      stripes: 'twin',
+      caliper: '#ffd23f',
       profile: [
         [0, 0.25], [0.02, 0.62], [0.12, 0.8], [0.35, 0.9], [0.75, 0.95], [0.95, 0.9], [1, 0.6], [1, 0.25],
       ],
@@ -121,6 +139,12 @@ export const CAR_DEFS: CarDef[] = [
       spoiler: 'wing',
       accent: '#ffd23f',
       rimColor: '#ffffff',
+      rimStyle: 'dish',
+      flare: 0.08,
+      lightStyle: 'round',
+      stripes: 'flank',
+      roof: 'accent',
+      caliper: '#ff3b3b',
       profile: [
         [0, 0.3], [0.03, 0.7], [0.18, 0.88], [0.5, 0.95], [0.96, 0.96], [1, 0.8], [1, 0.3],
       ],
@@ -155,6 +179,12 @@ export const CAR_DEFS: CarDef[] = [
       spoiler: 'none',
       accent: '#ffffff',
       rimColor: '#ff66c4',
+      rimStyle: 'turbine',
+      flare: 0.03,
+      lightStyle: 'slim',
+      stripes: 'flank',
+      roof: 'accent',
+      caliper: '#3de0ff',
       profile: [
         [0, 0.3], [0.02, 0.7], [0.15, 0.92], [0.5, 1.0], [0.88, 0.95], [1, 0.72], [1, 0.3],
       ],
@@ -187,6 +217,12 @@ export const CAR_DEFS: CarDef[] = [
       spoiler: 'tall',
       accent: '#3dffd8',
       rimColor: '#1d1d28',
+      rimStyle: 'mesh',
+      flare: 0.09,
+      lightStyle: 'slim',
+      stripes: 'center',
+      roof: 'black',
+      caliper: '#3dffd8',
       profile: [
         [0, 0.2], [0.01, 0.55], [0.1, 0.78], [0.32, 0.88], [0.78, 0.92], [0.96, 0.9], [1, 0.55], [1, 0.2],
       ],
@@ -221,6 +257,11 @@ export const CAR_DEFS: CarDef[] = [
       spoiler: 'ducktail',
       accent: '#1b1446',
       rimColor: '#c9ced8',
+      rimStyle: 'multi',
+      flare: 0.06,
+      lightStyle: 'round',
+      stripes: 'twin',
+      caliper: '#ff3b3b',
       profile: [
         [0, 0.28], [0.01, 0.75], [0.08, 0.9], [0.3, 0.96], [0.96, 0.96], [1, 0.82], [1, 0.28],
       ],
@@ -254,6 +295,12 @@ export const CAR_DEFS: CarDef[] = [
       spoiler: 'wing',
       accent: '#ff4fa3',
       rimColor: '#3de0ff',
+      rimStyle: 'multi',
+      flare: 0.05,
+      lightStyle: 'slim',
+      stripes: 'center',
+      roof: 'black',
+      caliper: '#ff4fa3',
       profile: [
         [0, 0.18], [0.0, 0.42], [0.2, 0.7], [0.4, 0.86], [0.8, 0.95], [0.97, 0.92], [1, 0.6], [1, 0.18],
       ],

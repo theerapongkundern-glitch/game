@@ -4,6 +4,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 
 /** Radial motion blur + vignette + slight grade, applied in linear HDR before tone mapping. */
 const FinalShader = {
@@ -65,6 +66,7 @@ export class PostFX {
   readonly composer: EffectComposer;
   private readonly renderPass: RenderPass;
   private readonly bloom: UnrealBloomPass | null;
+  private readonly ao: GTAOPass | null;
   private readonly final: ShaderPass;
   enabled = true;
 
@@ -72,15 +74,22 @@ export class PostFX {
     readonly renderer: THREE.WebGLRenderer,
     scene: THREE.Scene,
     camera: THREE.Camera,
-    opts: { bloom: boolean; blurSamples: number; msaa: number },
+    opts: { bloom: boolean; blurSamples: number; msaa: number; ao?: boolean },
   ) {
     const size = renderer.getDrawingBufferSize(new THREE.Vector2());
     const rt = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: opts.msaa });
     this.composer = new EffectComposer(renderer, rt);
     this.renderPass = new RenderPass(scene, camera);
     this.composer.addPass(this.renderPass);
+    if (opts.ao) {
+      // Ground-truth AO (Ultra): contact shadows under cars, props and in crevices.
+      this.ao = new GTAOPass(scene, camera, size.x, size.y);
+      this.ao.updateGtaoMaterial({ radius: 0.9, distanceExponent: 1.4, thickness: 1.6, scale: 1.1, samples: 12, distanceFallOff: 1 });
+      this.ao.blendIntensity = 0.8;
+      this.composer.addPass(this.ao);
+    } else this.ao = null;
     if (opts.bloom) {
-      this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.5, 0.55, 0.82);
+      this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.5, 0.55, 0.95);
       this.composer.addPass(this.bloom);
     } else this.bloom = null;
     this.final = new ShaderPass(FinalShader);
@@ -92,6 +101,10 @@ export class PostFX {
   setScene(scene: THREE.Scene, camera: THREE.Camera) {
     this.renderPass.scene = scene;
     this.renderPass.camera = camera;
+    if (this.ao) {
+      this.ao.scene = scene;
+      this.ao.camera = camera;
+    }
   }
 
   setSize(w: number, h: number, pixelRatio: number) {
@@ -115,5 +128,6 @@ export class PostFX {
   dispose() {
     this.composer.dispose();
     this.bloom?.dispose();
+    this.ao?.dispose();
   }
 }

@@ -90,7 +90,7 @@ describe('Ghost encoding', () => {
 
 describe('Save migration', () => {
   it('fills defaults and keeps starter unlocks', () => {
-    const s = migrate({ version: 1, settings: { quality: 'ultra', bindings: { up: ['KeyW'] } }, unlocked: { cars: [], tracks: [] } });
+    const s = migrate({ version: 1, settings: { quality: 'insane', bindings: { up: ['KeyW'] } }, unlocked: { cars: [], tracks: [] } });
     expect(s.version).toBe(defaultSave().version);
     expect(s.settings.quality).toBe(defaultSave().settings.quality);
     expect(s.settings.bindings.length).toBe(2);

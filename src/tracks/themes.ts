@@ -23,6 +23,16 @@ export interface ThemeStyle {
   dirt: { base: string; specks: string[] };
   sand: { base: string; specks: string[] };
   gantry: { banner: string; text: string; pillar: string };
+  /** Terrain shading: macro colour variation, rock on slopes, wet band at the shoreline. */
+  terrain: {
+    alt: string;
+    rock: string;
+    rockSlope: [number, number];
+    /** Horizontal rock banding strength (canyon strata). */
+    strata: number;
+    shore?: { color: string; height: number };
+    detail: 'grain' | 'ripple';
+  };
 }
 
 export const THEMES: Record<ThemeId, ThemeStyle> = {
@@ -39,6 +49,7 @@ export const THEMES: Record<ThemeId, ThemeStyle> = {
     dirt: { base: '#a8743f', specks: ['#8b5e30', '#c28b55', '#7a5129'] },
     sand: { base: '#f0d18a', specks: ['#e2bf73', '#f8e0a6', '#d9b066'] },
     gantry: { banner: '#5b3cff', text: '#ffffff', pillar: '#ff4fa3' },
+    terrain: { alt: '#4aa755', rock: '#8a8f86', rockSlope: [0.3, 0.55], strata: 0, detail: 'grain' },
   },
   beach: {
     road: { base: '#50535f', speck: ['#646876', '#3f414b', '#777a88'], edge: '#ffffff', center: '#ffd23f', dashed: true },
@@ -55,6 +66,7 @@ export const THEMES: Record<ThemeId, ThemeStyle> = {
     dirt: { base: '#e6c38a', specks: ['#d6ae70', '#f2d7a5', '#c99d5d'] },
     sand: { base: '#f3d9a0', specks: ['#e8c985', '#fbe7bb', '#dcb772'] },
     gantry: { banner: '#ff6f59', text: '#ffffff', pillar: '#2fd0d8' },
+    terrain: { alt: '#e7c585', rock: '#b9a58e', rockSlope: [0.32, 0.6], strata: 0, shore: { color: '#caa66c', height: -0.4 }, detail: 'ripple' },
   },
   city: {
     road: { base: '#2b2d3a', speck: ['#393c4d', '#22232e', '#44475a'], edge: '#e8ecff', center: '#ff4fa3', dashed: true },
@@ -69,6 +81,7 @@ export const THEMES: Record<ThemeId, ThemeStyle> = {
     dirt: { base: '#4b4e63', specks: ['#5a5d75', '#3d4052', '#6a6d85'] },
     sand: { base: '#a58c6c', specks: ['#b89f7d', '#8f775a'] },
     gantry: { banner: '#1b1446', text: '#3de0ff', pillar: '#ff4fa3' },
+    terrain: { alt: '#25273a', rock: '#3a3d52', rockSlope: [0.3, 0.55], strata: 0, detail: 'grain' },
   },
   forest: {
     road: { base: '#4b4a52', speck: ['#5d5c66', '#3a3940', '#6b6a74'], edge: '#ffffff', center: '#ffffff', dashed: true },
@@ -85,6 +98,7 @@ export const THEMES: Record<ThemeId, ThemeStyle> = {
     dirt: { base: '#9b6a3e', specks: ['#85592f', '#b27c4c', '#6f4a28'] },
     sand: { base: '#d8c08a', specks: ['#c8ae74', '#e6d09c'] },
     gantry: { banner: '#2ec27e', text: '#ffffff', pillar: '#a0643a' },
+    terrain: { alt: '#3d8a3a', rock: '#8e8a82', rockSlope: [0.26, 0.48], strata: 0.08, shore: { color: '#8d7a58', height: -3.9 }, detail: 'grain' },
   },
   desert: {
     road: { base: '#5b5352', speck: ['#6e6564', '#4a4342', '#7d7372'], edge: '#ffffff', center: '#ffb13d', dashed: false },
@@ -99,5 +113,6 @@ export const THEMES: Record<ThemeId, ThemeStyle> = {
     dirt: { base: '#c48656', specks: ['#b07446', '#d69a68', '#9c653a'] },
     sand: { base: '#efc28c', specks: ['#e2ae74', '#f7d4a6', '#d69c62'] },
     gantry: { banner: '#ff8a3d', text: '#fff6e0', pillar: '#7a3b2a' },
+    terrain: { alt: '#d18b52', rock: '#b35a38', rockSlope: [0.22, 0.46], strata: 0.22, detail: 'ripple' },
   },
 };

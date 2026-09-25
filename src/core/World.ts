@@ -22,7 +22,7 @@ export class World {
   constructor(renderer: Renderer, readonly def: TrackDef) {
     const q = renderer.preset;
     this.track = new Track(def);
-    this.sky = new Sky(def.sky);
+    this.sky = new Sky(def.sky, { physical: q.pbr, flare: q.flare });
     this.sky.addTo(this.scene);
     if (q.shadows > 0) {
       this.sky.sun.shadow.mapSize.set(q.shadows, q.shadows);
@@ -31,7 +31,7 @@ export class World {
     this.envMap = this.sky.makeEnvironment(renderer.gl);
     this.scene.environment = this.envMap;
     this.scene.environmentIntensity = this.sky.preset.night ? 0.5 : 0.85;
-    this.visual = buildTrackVisual(this.track, renderer.quality === 'low');
+    this.visual = buildTrackVisual(this.track, renderer.quality === 'low', q.terrainSeg);
     this.scene.add(this.visual.group);
     this.scenery = buildScenery(this.track, this.visual, q.scenery, q.shadows >= 2048);
     this.scene.add(this.scenery.group);

@@ -6,6 +6,7 @@ import { TrackGround, type Track } from '../tracks/Track';
 import { SURFACES } from '../tracks/Surfaces';
 import type { Effects } from '../core/Particles';
 import { clamp, lerp, wrapAngle } from '../core/math';
+import type { Quality } from '../core/Renderer';
 
 export type Controller = 'human' | 'ai' | 'ghost';
 
@@ -42,7 +43,7 @@ export class Car {
     readonly track: Track,
     public name: string,
     public controller: Controller,
-    quality: 'low' | 'medium' | 'high',
+    quality: Quality,
   ) {
     this.physics = new VehiclePhysics(def);
     this.visual = buildCarModel(def, color, quality);

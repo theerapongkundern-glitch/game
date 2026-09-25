@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { PostFX } from './PostFX';
 import { clamp } from './math';
 
-export type Quality = 'low' | 'medium' | 'high';
+export type Quality = 'low' | 'medium' | 'high' | 'ultra';
 
 export interface QualityPreset {
   maxPixelRatio: number;
@@ -14,12 +14,28 @@ export interface QualityPreset {
   /** Scenery density multiplier. */
   scenery: number;
   antialias: boolean;
+  /** Physically based extras: clearcoat paint, normal-mapped road, physical sky. */
+  pbr: boolean;
+  /** Screen-space ambient occlusion (GTAO). */
+  ao: boolean;
+  /** Sun lens flare. */
+  flare: boolean;
+  /** Terrain grid resolution. */
+  terrainSeg: number;
+  /** Instanced grass density near the road (0 = off). */
+  grass: number;
+  /** Crepuscular rays / heat haze post effects. */
+  godRays: boolean;
+  heatHaze: boolean;
+  /** Car model detail level. */
+  carDetail: 'low' | 'high' | 'ultra';
 }
 
 export const QUALITY: Record<Quality, QualityPreset> = {
-  low: { maxPixelRatio: 1, shadows: 0, post: false, bloom: false, blurSamples: 0, msaa: 0, scenery: 0.45, antialias: false },
-  medium: { maxPixelRatio: 1.25, shadows: 1024, post: true, bloom: false, blurSamples: 5, msaa: 2, scenery: 0.75, antialias: true },
-  high: { maxPixelRatio: 1.5, shadows: 2048, post: true, bloom: true, blurSamples: 8, msaa: 4, scenery: 1, antialias: true },
+  low: { maxPixelRatio: 1, shadows: 0, post: false, bloom: false, blurSamples: 0, msaa: 0, scenery: 0.45, antialias: false, pbr: false, ao: false, flare: false, terrainSeg: 90, grass: 0, godRays: false, heatHaze: false, carDetail: 'low' },
+  medium: { maxPixelRatio: 1.25, shadows: 1024, post: true, bloom: false, blurSamples: 5, msaa: 2, scenery: 0.75, antialias: true, pbr: true, ao: false, flare: false, terrainSeg: 150, grass: 0, godRays: false, heatHaze: false, carDetail: 'high' },
+  high: { maxPixelRatio: 1.5, shadows: 2048, post: true, bloom: true, blurSamples: 8, msaa: 4, scenery: 1, antialias: true, pbr: true, ao: false, flare: true, terrainSeg: 220, grass: 0.6, godRays: false, heatHaze: true, carDetail: 'high' },
+  ultra: { maxPixelRatio: 2, shadows: 4096, post: true, bloom: true, blurSamples: 10, msaa: 4, scenery: 1.25, antialias: true, pbr: true, ao: true, flare: true, terrainSeg: 300, grass: 1, godRays: true, heatHaze: true, carDetail: 'ultra' },
 };
 
 /** A camera drawn into a normalised rectangle of the canvas (y from the bottom). */
@@ -135,7 +151,7 @@ export class Renderer {
       v.camera.updateProjectionMatrix();
       if (!this.post || this.postScene !== scene) {
         this.post?.dispose();
-        this.post = new PostFX(gl, scene, v.camera, { bloom: this.preset.bloom, blurSamples: this.preset.blurSamples, msaa: this.preset.msaa });
+        this.post = new PostFX(gl, scene, v.camera, { bloom: this.preset.bloom, blurSamples: this.preset.blurSamples, msaa: this.preset.msaa, ao: this.preset.ao });
         this.post.setSize(this.width, this.height, this.pixelRatio);
         this.postScene = scene;
       }

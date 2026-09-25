@@ -57,6 +57,7 @@ export class SettingsScreen extends Screen {
           ['low', 'Low'],
           ['medium', 'Medium'],
           ['high', 'High'],
+          ['ultra', 'Ultra'],
         ], (v) => {
           s.quality = v;
           g.renderer.applyQuality(v);

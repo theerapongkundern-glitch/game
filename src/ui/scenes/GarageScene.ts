@@ -73,12 +73,13 @@ export class GarageScene {
       this.car.dispose();
     }
     this.locked = locked;
-    this.car = buildCarModel(def, locked ? '#15122a' : color, this.renderer.quality === 'low' ? 'medium' : 'high');
+    this.car = buildCarModel(def, locked ? '#15122a' : color, this.renderer.quality === 'ultra' ? 'ultra' : 'high');
     this.car.root.position.y = 0.18;
     this.car.root.traverse((o) => {
       if (o instanceof THREE.Mesh) o.castShadow = true;
     });
     if (locked) {
+      this.car.accentStripe.set('#15122a');
       this.car.root.traverse((o) => {
         if (o instanceof THREE.Mesh) {
           const m = o.material as THREE.MeshStandardMaterial;

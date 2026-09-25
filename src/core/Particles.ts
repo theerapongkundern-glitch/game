@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { softDotTexture, sparkTexture } from '../tracks/textures';
+import type { Quality } from './Renderer';
 
 const vert = /* glsl */ `
 attribute float aSize;
@@ -233,8 +234,8 @@ export class Effects {
   /** 0..1 particle density multiplier from quality settings. */
   density = 1;
 
-  constructor(quality: 'low' | 'medium' | 'high') {
-    const scale = quality === 'low' ? 0.4 : quality === 'medium' ? 0.7 : 1;
+  constructor(quality: Quality) {
+    const scale = quality === 'low' ? 0.4 : quality === 'medium' ? 0.7 : quality === 'ultra' ? 1.3 : 1;
     this.density = scale;
     this.smoke = new ParticleSystem(Math.floor(900 * scale) + 50, 'soft', THREE.NormalBlending);
     this.dust = new ParticleSystem(Math.floor(700 * scale) + 50, 'soft', THREE.NormalBlending);

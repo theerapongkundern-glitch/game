@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { buildCarModel, type CarVisual } from './CarModel';
 import { getCarDef } from './CarDefs';
 import { wrapAngle } from '../core/math';
+import type { Quality } from '../core/Renderer';
 
 /** Samples per second recorded for a ghost lap. */
 export const GHOST_RATE = 20;
@@ -93,7 +94,7 @@ export class GhostPlayer {
 
   constructor(
     readonly data: GhostData,
-    quality: 'low' | 'medium' | 'high',
+    quality: Quality,
   ) {
     this.visual = buildCarModel(getCarDef(data.car), data.color, quality);
     this.visual.setOpacity(0.38);

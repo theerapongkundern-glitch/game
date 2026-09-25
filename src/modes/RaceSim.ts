@@ -5,6 +5,7 @@ import { makeFrame } from '../tracks/Track';
 import type { ModeRules, Difficulty } from './ModeRules';
 import { clamp, lerp } from '../core/math';
 import { Loop } from '../core/Loop';
+import type { Quality } from '../core/Renderer';
 
 export interface Participant {
   kind: 'human' | 'ai';
@@ -105,7 +106,7 @@ export class RaceSim {
     readonly participants: Participant[],
     readonly rules: ModeRules,
     readonly difficulty: Difficulty,
-    opts: { countdown: boolean; quality: 'low' | 'medium' | 'high' },
+    opts: { countdown: boolean; quality: Quality },
   ) {
     participants.forEach((p, i) => {
       const def = getCarDef(p.carId);

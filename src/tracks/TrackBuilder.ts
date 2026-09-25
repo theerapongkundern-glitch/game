@@ -5,7 +5,12 @@ import {
   bannerTexture,
   checkerTexture,
   chevronTexture,
+  asphaltDetail,
+  groundNormal,
   noiseTexture,
+  rippleNormal,
+  waveNormal,
+  puddleNormal,
   roadTexture,
   stripeTexture,
 } from './textures';
@@ -151,6 +156,8 @@ export interface TrackVisual {
   terrainHeight(x: number, z: number): number;
   /** Distance from the main centre line (approximate, for scenery placement). */
   distanceToTrack(x: number, z: number): { dist: number; y: number; limit: number };
+  /** Areas reserved by trackside buildings; scenery scatter keeps out of them. */
+  exclusions: { x: number; z: number; r: number }[];
   dispose(): void;
 }
 
@@ -159,7 +166,9 @@ export function surfaceMaterial(type: SurfaceType, theme: ThemeStyle): THREE.Mes
     case 'wet':
       return new THREE.MeshStandardMaterial({
         color: '#2f3a52',
-        roughness: 0.08,
+        roughness: 0.06,
+        normalMap: typeof document !== 'undefined' ? puddleNormal() : null,
+        normalScale: new THREE.Vector2(0.35, 0.35),
         metalness: 0.35,
         transparent: true,
         opacity: 0.72,
@@ -179,7 +188,7 @@ export function surfaceMaterial(type: SurfaceType, theme: ThemeStyle): THREE.Mes
   }
 }
 
-export function buildTrackVisual(track: Track, lowDetail: boolean): TrackVisual {
+export function buildTrackVisual(track: Track, lowDetail: boolean, terrainSeg = lowDetail ? 90 : 150): TrackVisual {
   const theme = THEMES[track.def.theme];
   const group = new THREE.Group();
   group.name = 'track';
@@ -201,6 +210,14 @@ export function buildTrackVisual(track: Track, lowDetail: boolean): TrackVisual 
   // --- Road surfaces ---------------------------------------------------------------------
   const roadTex = roadTexture(theme.road);
   const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, roughness: theme.roadRoughness, metalness: 0.02 });
+  if (!lowDetail) {
+    // Aggregate grain + cracks tile every ~3 m; the roughness map polishes the tyre lanes.
+    const detail = asphaltDetail();
+    detail.normal.repeat.set(6, 4);
+    roadMat.normalMap = detail.normal;
+    roadMat.normalScale.set(0.55, 0.55);
+    roadMat.roughnessMap = detail.rough;
+  }
   const shoulderTex = noiseTexture('shoulder-' + track.def.theme, theme.shoulder.base, theme.shoulder.specks, 3, theme.shoulder.blades);
   const shoulderMat = new THREE.MeshStandardMaterial({ map: shoulderTex, roughness: 1 });
 
@@ -265,8 +282,11 @@ export function buildTrackVisual(track: Track, lowDetail: boolean): TrackVisual 
       };
       for (const [i0, cnt] of runs(path, curvy)) {
         if (cnt < 3) continue;
-        addRibbon(cb, path, { i0, count: cnt, lat0: (i) => path.hw[i] - 0.25, lat1: (i) => path.hw[i] + 0.9, y: 0.035, cols: 1, vTile: 2 });
-        addRibbon(cb, path, { i0, count: cnt, lat0: (i) => -path.hw[i] - 0.9, lat1: (i) => -path.hw[i] + 0.25, y: 0.035, cols: 1, vTile: 2 });
+        // Raised rumble strips: a rounded 5 cm hump across the curb (visual only).
+        const cols = lowDetail ? 1 : 6;
+        const hump = (t: number) => (lowDetail ? 0 : 0.05 * Math.pow(Math.sin(Math.PI * clamp(t, 0, 1)), 0.6));
+        addRibbon(cb, path, { i0, count: cnt, lat0: (i) => path.hw[i] - 0.25, lat1: (i) => path.hw[i] + 0.9, y: 0.03, cols, vTile: 2, heightFn: (i, lat) => hump((lat - path.hw[i] + 0.25) / 1.15) });
+        addRibbon(cb, path, { i0, count: cnt, lat0: (i) => -path.hw[i] - 0.9, lat1: (i) => -path.hw[i] + 0.25, y: 0.03, cols, vTile: 2, heightFn: (i, lat) => hump((lat + path.hw[i] + 0.9) / 1.15) });
       }
       if (cb.count > 0) track2mesh(cb.build(), curbMat);
     }
@@ -358,6 +378,7 @@ export function buildTrackVisual(track: Track, lowDetail: boolean): TrackVisual 
   }
 
   // --- Terrain -------------------------------------------------------------------------------
+  let heightInfo: HeightInfo | null = null;
   const field = buildDistanceField(track);
   const sea = track.def.sea;
   const terrainHeight = (x: number, z: number) => {
@@ -379,7 +400,7 @@ export function buildTrackVisual(track: Track, lowDetail: boolean): TrackVisual 
     const maxX = b.maxX + margin;
     const minZ = b.minZ - margin;
     const maxZ = b.maxZ + margin;
-    const seg = lowDetail ? 90 : 150;
+    const seg = terrainSeg;
     const geo = new THREE.PlaneGeometry(maxX - minX, maxZ - minZ, seg, seg);
     geo.rotateX(-Math.PI / 2);
     geo.translate((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
@@ -394,13 +415,42 @@ export function buildTrackVisual(track: Track, lowDetail: boolean): TrackVisual 
     geo.computeVertexNormals();
     const tex = noiseTexture('ground-' + track.def.theme, theme.ground.base, theme.ground.specks, 9, theme.ground.blades);
     const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 1, color: theme.groundTint });
+    if (!lowDetail) {
+      const nm = theme.terrain.detail === 'ripple' ? rippleNormal() : groundNormal();
+      nm.repeat.set(4, 4);
+      mat.normalMap = nm;
+      mat.normalScale.set(0.7, 0.7);
+    }
+    decorateTerrain(mat, theme);
     const terrain = track2mesh(geo, mat, true, false);
     terrain.name = 'terrain';
+    // Height map of the terrain for the water shader (depth colour + shoreline foam).
+    if (theme.water) {
+      const n = seg + 1;
+      let hMin = Infinity;
+      let hMax = -Infinity;
+      for (let i = 0; i < pos.count; i++) {
+        hMin = Math.min(hMin, pos.getY(i));
+        hMax = Math.max(hMax, pos.getY(i));
+      }
+      const data = new Uint8Array(n * n * 4);
+      for (let i = 0; i < pos.count; i++) {
+        const v = Math.round(((pos.getY(i) - hMin) / Math.max(1e-3, hMax - hMin)) * 255);
+        data[i * 4] = v;
+        data[i * 4 + 3] = 255;
+      }
+      const ht = new THREE.DataTexture(data, n, n, THREE.RGBAFormat);
+      ht.magFilter = THREE.LinearFilter;
+      ht.minFilter = THREE.LinearFilter;
+      ht.needsUpdate = true;
+      disposables.push(ht);
+      heightInfo = { tex: ht, minX, minZ, sizeX: maxX - minX, sizeZ: maxZ - minZ, hMin, hMax };
+    }
   }
 
   // --- Water -----------------------------------------------------------------------------
   if (theme.water) {
-    const water = buildWater(track, theme.water.color, theme.water.deep, theme.water.level);
+    const water = buildWater(track, theme.water.color, theme.water.deep, theme.water.level, heightInfo, lowDetail);
     group.add(water.mesh);
     disposables.push(water);
     animated.push(water.update);
@@ -413,6 +463,7 @@ export function buildTrackVisual(track: Track, lowDetail: boolean): TrackVisual 
     },
     terrainHeight,
     distanceToTrack: (x, z) => field.sample(x, z),
+    exclusions: [],
     dispose() {
       for (const d of disposables) d.dispose();
     },
@@ -535,40 +586,170 @@ function buildDistanceField(track: Track) {
   return { sample };
 }
 
-function buildWater(track: Track, color: string, deep: string, level: number) {
+interface HeightInfo {
+  tex: THREE.DataTexture;
+  minX: number;
+  minZ: number;
+  sizeX: number;
+  sizeZ: number;
+  hMin: number;
+  hMax: number;
+}
+
+/** Shared GLSL value noise for terrain and water. */
+const NOISE_GLSL = /* glsl */ `
+float tHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float tNoise(vec2 p) {
+  vec2 i = floor(p); vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(tHash(i), tHash(i + vec2(1.0, 0.0)), u.x), mix(tHash(i + vec2(0.0, 1.0)), tHash(i + vec2(1.0, 1.0)), u.x), u.y);
+}`;
+
+/**
+ * Terrain shading on top of the tiled ground texture: large-scale colour variation (breaks up
+ * tiling), rock on steep slopes (with optional strata), and a darker wet band by the water.
+ */
+function decorateTerrain(mat: THREE.MeshStandardMaterial, theme: ThemeStyle) {
+  const t = theme.terrain;
+  const base = new THREE.Color(theme.ground.base);
+  const alt = new THREE.Color(t.alt);
+  const ratio = new THREE.Color(alt.r / Math.max(0.02, base.r), alt.g / Math.max(0.02, base.g), alt.b / Math.max(0.02, base.b));
+  const uniforms = {
+    uAltRatio: { value: ratio },
+    uRock: { value: new THREE.Color(t.rock) },
+    uRockSlope: { value: new THREE.Vector2(t.rockSlope[0], t.rockSlope[1]) },
+    uStrata: { value: t.strata },
+    uShore: { value: new THREE.Color(t.shore?.color ?? '#000000') },
+    uShoreY: { value: t.shore ? t.shore.height : -1e4 },
+  };
+  mat.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, uniforms);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vTP;\nvarying vec3 vTN;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvTP = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvTN = normalize(mat3(modelMatrix) * objectNormal);');
+    sh.fragmentShader = sh.fragmentShader
+      .replace(
+        '#include <common>',
+        `#include <common>
+varying vec3 vTP;
+varying vec3 vTN;
+uniform vec3 uAltRatio;
+uniform vec3 uRock;
+uniform vec2 uRockSlope;
+uniform float uStrata;
+uniform vec3 uShore;
+uniform float uShoreY;
+float tShoreW = 0.0;
+float tRockW = 0.0;
+${NOISE_GLSL}`,
+      )
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+{
+  float m1 = tNoise(vTP.xz * 0.012) * 0.65 + tNoise(vTP.xz * 0.05 + 17.0) * 0.35;
+  float m3 = tNoise(vTP.xz * 0.6 + vTP.y * 0.3);
+  vec3 c = diffuseColor.rgb;
+  c = mix(c, c * uAltRatio, smoothstep(0.38, 0.72, m1));
+  float slope = 1.0 - normalize(vTN).y;
+  tRockW = smoothstep(uRockSlope.x, uRockSlope.y, slope + (m1 - 0.5) * 0.12);
+  float strata = 1.0 + uStrata * (sin(vTP.y * 1.7 + m1 * 4.0) + 0.5 * sin(vTP.y * 4.3));
+  vec3 rock = uRock * (0.78 + 0.4 * m3) * strata;
+  c = mix(c, rock, tRockW);
+  tShoreW = (1.0 - smoothstep(uShoreY - 0.8, uShoreY + 0.9, vTP.y + (m3 - 0.5) * 0.5)) * step(-1e3, uShoreY);
+  c = mix(c, uShore * (0.85 + 0.3 * m3), tShoreW * 0.85);
+  diffuseColor.rgb = c;
+}`,
+      )
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.35, tShoreW * 0.8);\nroughnessFactor = mix(roughnessFactor, 0.8, tRockW * 0.5);');
+  };
+  mat.customProgramCacheKey = () => 'prism-terrain-1';
+}
+
+function buildWater(track: Track, color: string, deep: string, level: number, height: HeightInfo | null, lowDetail: boolean) {
   const b = track.bounds;
   const size = Math.max(b.maxX - b.minX, b.maxZ - b.minZ) + 2400;
   const geo = new THREE.PlaneGeometry(size, size, 1, 1);
   geo.rotateX(-Math.PI / 2);
+  const hasDocument = typeof document !== 'undefined';
   const uniforms = {
     uTime: { value: 0 },
-    uColor: { value: new THREE.Color(color) },
     uDeep: { value: new THREE.Color(deep) },
+    uShallow: { value: new THREE.Color(color).lerp(new THREE.Color('#bff7ee'), 0.35) },
+    uLevel: { value: level },
+    uHeight: { value: height?.tex ?? null },
+    uHBox: { value: new THREE.Vector4(height?.minX ?? 0, height?.minZ ?? 0, height?.sizeX ?? 1, height?.sizeZ ?? 1) },
+    uHRange: { value: new THREE.Vector2(height?.hMin ?? -100, height?.hMax ?? -99) },
+    uWaveN: { value: hasDocument && !lowDetail ? waveNormal() : null },
   };
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.12, metalness: 0.1, transparent: true, opacity: 0.92, envMapIntensity: 1.2 });
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.06, metalness: 0.05, transparent: true, opacity: 0.94, envMapIntensity: 1.4 });
   mat.onBeforeCompile = (shader) => {
-    shader.uniforms.uTime = uniforms.uTime;
-    shader.uniforms.uDeep = uniforms.uDeep;
+    Object.assign(shader.uniforms, uniforms);
+    const useH = height ? 1 : 0;
+    const useN = uniforms.uWaveN.value ? 1 : 0;
+    shader.defines = { ...(shader.defines ?? {}), WATER_HEIGHT: useH, WATER_WAVES: useN };
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;\nuniform float uTime;\nuniform vec3 uDeep;')
+      .replace(
+        '#include <common>',
+        `#include <common>
+varying vec3 vWPos;
+uniform float uTime;
+uniform vec3 uDeep;
+uniform vec3 uShallow;
+uniform float uLevel;
+uniform sampler2D uHeight;
+uniform vec4 uHBox;
+uniform vec2 uHRange;
+uniform sampler2D uWaveN;
+float wDepth = 100.0;
+${NOISE_GLSL}`,
+      )
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
-        float w1 = sin(vWPos.x * 0.08 + uTime * 1.2) * sin(vWPos.z * 0.07 - uTime * 0.9);
-        float w2 = sin(vWPos.x * 0.21 - uTime * 1.7 + vWPos.z * 0.13);
-        float waves = w1 * 0.5 + w2 * 0.25;
-        diffuseColor.rgb = mix(diffuseColor.rgb, uDeep, 0.35 + waves * 0.15);
-        diffuseColor.rgb += vec3(smoothstep(0.62, 0.75, waves)) * 0.35;`,
-      );
+#if WATER_HEIGHT == 1
+  {
+    vec2 huv = (vWPos.xz - uHBox.xy) / uHBox.zw;
+    float th = mix(uHRange.x, uHRange.y, texture2D(uHeight, clamp(huv, 0.0, 1.0)).r);
+    wDepth = uLevel - th;
+  }
+#endif
+  float shallow = 1.0 - smoothstep(0.0, 5.0, wDepth);
+  float w1 = sin(vWPos.x * 0.08 + uTime * 1.2) * sin(vWPos.z * 0.07 - uTime * 0.9);
+  diffuseColor.rgb = mix(uDeep, uShallow, shallow * 0.85) * (0.92 + 0.08 * w1);
+  // Surf: bands that roll in towards the shore, broken up by noise.
+  float nz = tNoise(vWPos.xz * 0.25 + uTime * 0.15);
+  float band = 0.5 + 0.5 * sin(wDepth * 5.0 - uTime * 1.6 + nz * 3.0);
+  float foam = (1.0 - smoothstep(0.0, 1.1, wDepth)) * smoothstep(0.45, 0.9, band * 0.7 + nz * 0.5);
+  foam += (1.0 - smoothstep(0.0, 0.25, wDepth)) * 0.8;
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), clamp(foam, 0.0, 1.0) * 0.85);
+  diffuseColor.a *= mix(0.97, 0.6, shallow) * smoothstep(-0.05, 0.12, wDepth);`,
+      )
+      .replace(
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
+#if WATER_WAVES == 1
+  {
+    vec3 n1 = texture2D(uWaveN, vWPos.xz * 0.03 + vec2(uTime * 0.011, uTime * 0.007)).xyz * 2.0 - 1.0;
+    vec3 n2 = texture2D(uWaveN, vWPos.xz * 0.085 + vec2(-uTime * 0.018, uTime * 0.013)).xyz * 2.0 - 1.0;
+    vec2 d = (n1.xy + n2.xy) * 0.35;
+    vec3 wn = normalize(vec3(d.x, 1.0, -d.y));
+    normal = normalize((viewMatrix * vec4(wn, 0.0)).xyz);
+  }
+#endif`,
+      )
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.7, clamp(1.0 - smoothstep(0.0, 1.1, wDepth), 0.0, 1.0) * 0.6);');
   };
+  mat.customProgramCacheKey = () => 'prism-water-' + (height ? 1 : 0) + (uniforms.uWaveN.value ? 1 : 0);
   const mesh = new THREE.Mesh(geo, mat);
   const cx = (b.minX + b.maxX) / 2;
   const cz = (b.minZ + b.maxZ) / 2;
   mesh.position.set(cx, level, cz);
   mesh.receiveShadow = false;
+  mesh.renderOrder = 2;
   return {
     mesh,
     update: (t: number) => {

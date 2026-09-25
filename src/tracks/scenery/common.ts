@@ -36,11 +36,17 @@ export function scatter(visual: TrackVisual, rng: Rng, bounds: { minX: number; m
     const d = visual.distanceToTrack(x, z);
     if (d.dist < d.limit + o.minGap || d.dist > o.maxDist) continue;
     if (o.hug && rng.next() < o.hug * Math.min(1, (d.dist - d.limit) / (o.maxDist - d.limit))) continue;
+    if (excluded(visual, x, z)) continue;
     const y = visual.terrainHeight(x, z);
     if (o.accept && !o.accept(x, z, y, d.dist)) continue;
     out.push({ x, y, z, rot: rng.range(0, Math.PI * 2), scale: rng.range(o.scale[0], o.scale[1]), dist: d.dist });
   }
   return out;
+}
+
+export function excluded(visual: TrackVisual, x: number, z: number): boolean {
+  for (const e of visual.exclusions) if ((x - e.x) ** 2 + (z - e.z) ** 2 < e.r * e.r) return true;
+  return false;
 }
 
 const _m = new THREE.Matrix4();

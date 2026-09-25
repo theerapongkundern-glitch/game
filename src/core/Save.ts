@@ -101,7 +101,7 @@ export function migrate(raw: unknown): SaveData {
   // Always keep the starter content unlocked.
   for (const id of base.unlocked.cars) if (!out.unlocked.cars.includes(id)) out.unlocked.cars.push(id);
   for (const id of base.unlocked.tracks) if (!out.unlocked.tracks.includes(id)) out.unlocked.tracks.push(id);
-  if (!['low', 'medium', 'high'].includes(out.settings.quality)) out.settings.quality = base.settings.quality;
+  if (!['low', 'medium', 'high', 'ultra'].includes(out.settings.quality)) out.settings.quality = base.settings.quality;
   return out;
 }
 
